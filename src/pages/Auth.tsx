@@ -11,10 +11,13 @@ import { Loader2 } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { Footer } from "@/components/Footer";
 
+type IntendedRole = "psychiatrist" | "chw";
+
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [signupRole, setSignupRole] = useState<IntendedRole>("psychiatrist");
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
 
@@ -83,6 +86,7 @@ const Auth = () => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
+          intended_role: signupRole,
         },
       },
     });
