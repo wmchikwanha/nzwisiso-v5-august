@@ -11,10 +11,13 @@ import { Loader2 } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { Footer } from "@/components/Footer";
 
+type IntendedRole = "psychiatrist" | "chw";
+
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [signupRole, setSignupRole] = useState<IntendedRole>("psychiatrist");
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
 
@@ -83,6 +86,7 @@ const Auth = () => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
+          intended_role: signupRole,
         },
       },
     });
@@ -187,12 +191,38 @@ const Auth = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
+                    <Label>I am signing up as</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={signupRole === "psychiatrist" ? "default" : "outline"}
+                        onClick={() => setSignupRole("psychiatrist")}
+                        className="w-full"
+                      >
+                        Clinician
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={signupRole === "chw" ? "default" : "outline"}
+                        onClick={() => setSignupRole("chw")}
+                        className="w-full"
+                      >
+                        Community Health Worker
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {signupRole === "chw"
+                        ? "CHW account: lay-counsellor scope (PHQ-9, narrative capture, upward referral)."
+                        : "Clinician account: full diagnostic & treatment access."}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
                       id="signup-name"
                       name="fullName"
                       type="text"
-                      placeholder="Dr. Jane Smith"
+                      placeholder={signupRole === "chw" ? "Jane Moyo" : "Dr. Jane Smith"}
                       required
                     />
                   </div>

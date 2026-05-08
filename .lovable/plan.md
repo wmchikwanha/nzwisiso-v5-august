@@ -1,119 +1,133 @@
+## Part 1 — "Invalid API key" on sign-up
 
+Email-confirmation has already been disabled (auto_confirm is on), so signup itself should now succeed without verification. The "invalid API key" message is therefore almost certainly **not** an OpenAI/Anthropic/Google/Twilio key — none of those are touched during sign-up. It's the **Supabase publishable (anon) key** the browser sends with the auth request.
 
-# CHW Role-Based Access Control Plan
+Most likely causes after a remix:
 
-## Problem
+1. The browser still has a stale `.env` bundle cached — a hard refresh (Cmd+Shift+R) usually fixes it.
+2. The previous project's anon key was baked into a hard-coded fallback in `vite.config.ts` (memory note flags this) and is overriding the new remixed key.
 
-Currently, all authenticated users get the `psychiatrist` role (assigned by the `handle_new_user` trigger) and see the full clinical interface -- diagnostics, treatment planning, crisis intervention, screening tools. Community Health Workers (CHWs) should NOT have access to clinical diagnostic modules. They need a restricted view: record narratives, run basic screenings, and refer patients upward.
+**Plan for Part 1**
 
-## What Exists Today
-
-- `app_role` enum: `admin`, `moderator`, `user` -- no `chw` role
-- `user_roles` table with RLS and `has_role()` security definer function
-- `handle_new_user` trigger assigns `psychiatrist` to all new users
-- `userRole` exposed via `AuthContext` but never used to gate UI tabs
-- All 7 tabs (Patients, Intake, Assessment, Screening, First Aid, History, Analytics) visible to everyone
-
-## Solution: Add `chw` Role with Graduated UI Access
-
-### Role Permissions Matrix
-
-| Module | `psychiatrist` | `admin` | `chw` |
-|--------|:-:|:-:|:-:|
-| Patients (register, view) | Yes | Yes | Yes |
-| Intake Queue (review) | Yes | Yes | View only |
-| Recording & Transcription | Yes | Yes | Yes |
-| Process Narrative (MSE) | Yes | Yes | No |
-| Screening (PHQ-9 only) | Yes | Yes | Yes |
-| Screening (full battery) | Yes | Yes | No |
-| Clinical Abstract / MSE | Yes | Yes | No |
-| Diagnostic Formulation | Yes | Yes | No |
-| Treatment Plan | Yes | Yes | No |
-| Crisis First Aid | Yes | Yes | No |
-| Referral (upward) | Yes | Yes | Yes (primary action) |
-| Assessment History | Yes | Yes | View own recordings |
-| Analytics | Yes | Yes | No |
-| Ask AI | Yes | Yes | No |
-
-### CHW-Specific Features
-
-- **Upward Referral**: After recording a narrative, CHW sees a "Refer to Clinician" button instead of "Process Narrative". This creates a referral record linking the transcript + patient to a named or tentative clinician.
-- **Safety Net**: If PHQ-9 Item 9 >= 1, CHW sees the same crisis safety message as the patient portal (phone numbers, immediate action steps) but cannot initiate clinical crisis protocols.
+- Inspect `vite.config.ts` for any hard-coded `VITE_SUPABASE_PUBLISHABLE_KEY` / project ID fallbacks left over from the source project, and replace them with the remixed values from `.env`.
+- Confirm `src/integrations/supabase/client.ts` reads only from `import.meta.env` (it does).
+- Ask user to hard-reload after the fix and re-attempt signup. If it still fails, rotate the Supabase API keys.
+- No third-party secret needs updating for signup. Twilio/OpenAI/Anthropic/Google updates can be deferred until those features are exercised.
 
 ---
 
-## Implementation Steps
+## Part 2 — CHW persona (Friendship Bench / lay-counsellor model)
 
-### 1. Database Migration
+### Goals
 
-- Add `chw` to `app_role` enum: `ALTER TYPE public.app_role ADD VALUE 'chw'`
-- No new tables needed -- CHW referrals use the existing `referrals` table with `context = 'chw_upward_referral'`
+- CHW is the **first port of call**: lightweight, supportive, non-clinical.
+- Strict separation from clinician account; cannot reach diagnostic / treatment / crisis-protocol modules.
+- Can manage **multiple parallel client sessions** (up to 5 active), append new sessions to the same client, save-and-close, end-and-archive, or refer upward.
+- Same audio-capture pipeline as the psychiatrist (chunked 50 s transcription, multi-language).
+- PHQ-9 only for screening; PHQ-9 Item 9 ≥ 1 forces an upward-referral pathway.
+- Referral targets chosen from a registry of nurses, psychiatrists, and emergency facilities.
 
-### 2. Admin Role Assignment
+### What already exists (reuse, don't rebuild)
 
-- Remove auto-assignment of `psychiatrist` from `handle_new_user` trigger -- instead assign `user` as default
-- Add a clinician-facing "Team Management" section (admin only) where admins can invite CHWs and assign roles
-- For now (Phase 1): admin manually updates role via the existing `user_roles` table; a simple admin UI can be added later
+- `app_role` enum + `user_roles` table + `has_role()` helper.
+- `src/lib/permissions.ts` with `isCHW`, `canProcessNarrative`, etc.
+- `CHWReferralForm.tsx` (basic version — needs facility dropdown + urgency-driven routing).
+- `useAudioRecorder` hook + `InputZone` recording UI (chunked at 50 s).
+- `PHQ9Form` with auto-scoring and Item-9 alert.
+- `patients`, `screening_assessments`, `referrals`, `audit_events` tables.
 
-### 3. AuthContext Enhancement
+### Gaps to fill
 
-- `userRole` is already fetched -- no changes needed to the context
-- Create a helper: `src/lib/permissions.ts` with:
-  - `canAccessDiagnostics(role)` 
-  - `canProcessNarrative(role)`
-  - `canAccessFullScreening(role)`
-  - `canAccessAnalytics(role)`
-  - `canAccessCrisisProtocols(role)`
-  - `canReferUpward(role)` (all roles, but it's the CHW's primary action)
+**Database (migration)**
 
-### 4. UI Gating in Index.tsx
+- Add `'chw'` to `app_role` enum (currently the enum has admin/moderator/user/psychiatrist; CHWs are being approximated). Confirm and add if missing.
+- New table `chw_sessions` — one row per CHW encounter:
+  - `id`, `chw_id` (auth uid), `patient_id`, `session_number` (int, 1-based per patient), `status` (`active` | `completed` | `referred` | `archived`), `narrative_text`, `transcript_language`, `phq9_score`, `phq9_severity`, `phq9_item9_flag`, `notes`, `started_at`, `ended_at`, `created_at`, `updated_at`.
+  - RLS: CHW reads/writes only their own; admins read all.
+  - Trigger: cap at 5 simultaneous `status='active'` sessions per CHW (raise exception in BEFORE INSERT/UPDATE).
+  - Trigger: auto-increment `session_number` per `(chw_id, patient_id)` so session #2, #3 are appended, not resumed.
+- New table `referral_targets` — facility/specialist directory:
+  - `id`, `name`, `target_type` (`nurse` | `psychiatrist` | `emergency_centre` | `clinic`), `contact_phone`, `contact_email`, `address`, `is_active`. Seeded with a few example rows; admin-managed.
+  - Public read for authenticated users; admin write.
+- Extend `referrals` to optionally link `chw_session_id` (nullable FK).
+- Audit hooks: insert `audit_events` rows on session start, save-and-close, end, refer.
 
-- Wrap tab visibility with permission checks:
-  - **Assessment tab**: visible to all, but "Process Narrative" button hidden for CHW; replaced with "Refer to Clinician"
-  - **Screening tab**: CHW sees PHQ-9 only; other instruments hidden
-  - **First Aid tab**: hidden for CHW
-  - **Analytics tab**: hidden for CHW
-  - **Diagnostic Formulation, Treatment Plan, Ask AI**: hidden for CHW within assessment view
-- CHW header shows role badge: "Community Health Worker"
+**Sign-up flow**
 
-### 5. CHW Referral Workflow (New Component)
+- New "Sign up as Community Health Worker" tab on `/auth` (separate from clinician sign-up).
+- On CHW sign-up, the trigger assigns role `chw` (not `psychiatrist`).
+- Update `handle_new_user` so the role is read from `raw_user_meta_data->>'intended_role'` (defaulting to `psychiatrist` for backward compatibility), set during sign-up via `options.data`.
 
-- `src/components/CHWReferralForm.tsx`:
-  - Appears after CHW records and transcribes a narrative
-  - Fields: select clinician (from profiles), urgency level, brief note
-  - Saves to `referrals` table with `context = 'chw_upward_referral'` and `referral_type = 'clinical_review'`
-  - Links the transcript text and patient_id
-  - Clinician sees these in their Intake Queue with a "CHW Referral" badge
+**CHW dashboard (new route `/chw`)**
+A dedicated, simplified UI — *not* the clinician `Index.tsx` with hidden tabs:
 
-### 6. Intake Queue Enhancement
+- **Header**: large role badge "Community Health Worker", help button.
+- **Active Sessions strip**: cards for up to 5 active sessions (patient identifier, started time, last activity, "Resume", "End"). Cap enforced.
+- **Tabs**:
+  1. **Clients** — register a new client (re-use `PatientForm`), list existing clients with their session history.
+  2. **New Session** — pick or register a client → opens session workspace.
+  3. **Referrals** — list of referrals this CHW has sent + status.
+  4. **History** — completed/archived sessions, read-only.
 
-- Add a filter/section for CHW referrals alongside patient self-intake sessions
-- CHW referrals show: patient identifier, transcript excerpt, referring CHW name, urgency, timestamp
+**Session workspace component (`CHWSessionWorkspace.tsx`)**
 
----
+- Audio recorder (re-uses `useAudioRecorder` + transcription pipeline — identical schema/chunking to clinician).
+- Narrative text area populated by transcription.
+- "Run PHQ-9" button → renders `PHQ9Form` (already saves to `screening_assessments`); on submit, score is copied onto `chw_sessions`.
+- Item-9 ≥ 1 → red banner with safety guidance + auto-opens **Refer Up** drawer; cannot be dismissed without choosing a target.
+- Footer action bar:
+  - **Save & Pause** (status remains `active`, narrative+score persisted).
+  - **Save & Close** (status → `completed`, ended_at set; client record kept for future return).
+  - **End Session without Save** (status → `archived`, narrative discarded; confirmation required).
+  - **Refer Up** (status → `referred`; opens upgraded `CHWReferralForm`).
+- "Start Session 2" appears on a client who already has a closed session — creates a new row with `session_number = previous + 1` (appended, not resumed).
 
-## Security Considerations
+**Upgraded `CHWReferralForm.tsx**`
 
-- RLS policies already gate data by `user_id` -- CHWs can only see their own patients and recordings
-- No new RLS changes needed; the gating is at the UI + permission helper level
-- CHWs cannot call `process-narrative`, `suggest-diagnosis`, or `generate-treatment-plan` edge functions -- the UI simply doesn't expose these actions
-- For defense-in-depth: edge functions can optionally check caller role via JWT claims (Phase 2)
+- Two-step picker: target type (Nurse / Psychiatrist / Emergency Centre) → pulls matching rows from `referral_targets` + registered clinicians from `profiles`+`user_roles`.
+- Urgency mapped to action: `routine` (24-h window), `urgent` (same-day), `emergency` (auto-pre-fills emergency centre + shows phone numbers).
+- Free-text concern note + auto-attached transcript and PHQ-9 score.
+- Writes to `referrals` with `context='chw_upward_referral'` and `chw_session_id` set; flips session status to `referred`.
 
-## Files to Create/Modify
+**Routing & guards**
 
-| File | Action |
-|------|--------|
-| Migration SQL | Add `chw` to `app_role` enum |
-| `src/lib/permissions.ts` | New -- role permission helpers |
-| `src/pages/Index.tsx` | Gate tabs and components by role |
-| `src/components/CHWReferralForm.tsx` | New -- upward referral form |
-| `src/components/IntakeQueue.tsx` | Add CHW referral section |
-| `src/contexts/AuthContext.tsx` | No changes needed |
+- Add `/chw` route in `App.tsx` wrapped in a guard that redirects clinicians to `/` and CHWs away from `/`.
+- Update `Index.tsx` to early-redirect `chw` role to `/chw`.
 
-## Phase 2 (Future)
+**Permissions tightening**
 
-- Admin UI for managing team members and assigning roles
-- Edge function role verification (check JWT role claim server-side)
-- CHW-specific simplified UI theme with larger controls
-- Offline recording with sync-on-reconnect for CHW field use
+- Server-side: edge functions `process-narrative`, `suggest-diagnosis`, `generate-treatment-plan` should reject callers with `chw` role (read JWT claim + cross-check `user_roles`). Defence-in-depth, even though the UI hides them.
+- Client-side: `permissions.ts` already covers UI gating — extend with `canStartChwSession`, `canAccessChwDashboard`, `canManageReferralTargets` (admin only).
 
+### Files to create / modify
+
+
+| File                                         | Action                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `vite.config.ts`                             | Remove stale Supabase fallbacks                                                       |
+| migration                                    | `chw_sessions`, `referral_targets`, RLS, triggers, role-routing in `handle_new_user`  |
+| `src/pages/Auth.tsx`                         | Add "Sign up as CHW" path (sets `intended_role: 'chw'`)                               |
+| `src/pages/CHWDashboard.tsx`                 | New — CHW home with the four tabs                                                     |
+| `src/components/chw/CHWSessionWorkspace.tsx` | New — recording + PHQ-9 + action bar                                                  |
+| `src/components/chw/ActiveSessionsStrip.tsx` | New                                                                                   |
+| `src/components/chw/CHWClientList.tsx`       | New                                                                                   |
+| `src/components/chw/CHWHistory.tsx`          | New                                                                                   |
+| `src/components/CHWReferralForm.tsx`         | Upgrade with target-type picker + facility directory                                  |
+| `src/lib/permissions.ts`                     | Add `canAccessChwDashboard`, etc.                                                     |
+| `src/App.tsx`                                | Add `/chw` route + redirect logic                                                     |
+| `src/pages/Index.tsx`                        | Redirect CHW role away                                                                |
+| Edge functions                               | Add role check in `process-narrative`, `suggest-diagnosis`, `generate-treatment-plan` |
+
+
+### Out of scope for this pass (Phase 2)
+
+- Admin UI for managing `referral_targets` (DB-seeded rows are enough to start).
+- Offline sync for CHW field use.
+- SMS dispatch of referrals via Twilio (data is captured; dispatch can wire up later).
+
+### Open questions before I implement
+
+1. Should CHWs be able to **register new patients themselves**, or only see patients pre-registered by a clinician? (Friendship-bench model says yes — they register.) - YES THEY CAN WITH PII EMBEDDED
+2. Is the **5 simultaneous active sessions** cap correct, or per-patient limit instead? EACH PATIENT CAN HAVE 5 CONSECUTIVE SESSIONS. THEY HAVE ONE TODAY, IT IS SAVED ITHER TO RESUME LATER IN THE DAY OR TOMORROW (IF CUT OFF UNEXPECTADLY) OR SAVED AS COMPLETE SO NEXT TIME WE START ON SESSION 2
+3. For the referral-target directory, is it OK to seed Zimbabwe-relevant emergency numbers (e.g. ZRP, public hospitals) as defaults, or do you want it empty until an admin populates?. YES THIS IS OK, THEY CAN BE EDITED WITH REAL SUBSCRIBERS LATER
+4. On "End Session without Save", should the audio recording also be discarded, or kept in cold storage for governance/audit even if the narrative isn't? I THINK EVERYTHING IS DISCARDED IN CASE A RECORDING WAS DONE UNINTENTIONALLY

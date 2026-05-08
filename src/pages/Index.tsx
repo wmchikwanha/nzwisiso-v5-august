@@ -83,8 +83,10 @@ const Index = () => {
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
+    } else if (!loading && user && userRole === "chw") {
+      navigate("/chw");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, userRole, navigate]);
 
   useEffect(() => {
     const loadPatients = async () => {
