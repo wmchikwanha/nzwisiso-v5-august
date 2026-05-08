@@ -35,6 +35,12 @@ export const canReferUpward = (role: AppRole): boolean => true;
 /** Is a CHW (Community Health Worker) */
 export const isCHW = (role: AppRole): boolean => role === "chw";
 
+/** Can access the dedicated CHW dashboard */
+export const canAccessChwDashboard = (role: AppRole): boolean => role === "chw" || role === "admin";
+
+/** Can manage referral target directory (admins only) */
+export const canManageReferralTargets = (role: AppRole): boolean => role === "admin";
+
 /** Human-readable role label */
 export const getRoleLabel = (role: AppRole): string => {
   switch (role) {
