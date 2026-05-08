@@ -13,11 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HeartHandshake, Users, ArrowUpRight, History, LogOut, User } from "lucide-react";
+import { HeartHandshake, Users, ArrowUpRight, History, LogOut, User, Inbox } from "lucide-react";
 import { CHWClientList } from "@/components/chw/CHWClientList";
 import { CHWSessionWorkspace } from "@/components/chw/CHWSessionWorkspace";
 import { CHWReferralsList } from "@/components/chw/CHWReferralsList";
 import { CHWHistory } from "@/components/chw/CHWHistory";
+import { CHWSelfReferrals } from "@/components/chw/CHWSelfReferrals";
 import { Footer } from "@/components/Footer";
 
 const CHWDashboard = () => {
@@ -95,9 +96,12 @@ const CHWDashboard = () => {
           />
         ) : (
           <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList className="grid w-full max-w-2xl mx-auto mb-6 grid-cols-3">
+            <TabsList className="grid w-full max-w-3xl mx-auto mb-6 grid-cols-4">
               <TabsTrigger value="clients">
                 <Users className="h-4 w-4 mr-2" /> Clients
+              </TabsTrigger>
+              <TabsTrigger value="self-referrals">
+                <Inbox className="h-4 w-4 mr-2" /> Self-Referrals
               </TabsTrigger>
               <TabsTrigger value="referrals">
                 <ArrowUpRight className="h-4 w-4 mr-2" /> Referrals
@@ -109,6 +113,9 @@ const CHWDashboard = () => {
 
             <TabsContent value="clients">
               <CHWClientList onOpenSession={(id) => setActiveSessionId(id)} />
+            </TabsContent>
+            <TabsContent value="self-referrals">
+              <CHWSelfReferrals />
             </TabsContent>
             <TabsContent value="referrals">
               <CHWReferralsList />

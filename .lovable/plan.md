@@ -1,133 +1,105 @@
-## Part 1 — "Invalid API key" on sign-up
+## Goal
 
-Email-confirmation has already been disabled (auto_confirm is on), so signup itself should now succeed without verification. The "invalid API key" message is therefore almost certainly **not** an OpenAI/Anthropic/Google/Twilio key — none of those are touched during sign-up. It's the **Supabase publishable (anon) key** the browser sends with the auth request.
+Add a public, consumer-facing **Mental Health Self-Assessment** flow (no login required) that:
 
-Most likely causes after a remix:
+1. Walks an individual through consent → demographics → PHQ-9 → optional narrative (text/voice/document).
+2. Matches them to nearby MH facilities/practitioners via **browser geolocation + region fallback**.
+3. Submits an anonymised referral packet to the chosen recipient (clinician / ER / CHW), including **AI-suggested clinical diagnoses** that are visible **only to the receiving practitioner**, not the self-assessor.
+4. Surfaces inbound referrals to recipients via a **Facility Portal** (clinician/ER) and the **CHW workspace**.
 
-1. The browser still has a stale `.env` bundle cached — a hard refresh (Cmd+Shift+R) usually fixes it.
-2. The previous project's anon key was baked into a hard-coded fallback in `vite.config.ts` (memory note flags this) and is overriding the new remixed key.
-
-**Plan for Part 1**
-
-- Inspect `vite.config.ts` for any hard-coded `VITE_SUPABASE_PUBLISHABLE_KEY` / project ID fallbacks left over from the source project, and replace them with the remixed values from `.env`.
-- Confirm `src/integrations/supabase/client.ts` reads only from `import.meta.env` (it does).
-- Ask user to hard-reload after the fix and re-attempt signup. If it still fails, rotate the Supabase API keys.
-- No third-party secret needs updating for signup. Twilio/OpenAI/Anthropic/Google updates can be deferred until those features are exercised.
+The self-assessor only sees: confirmation, crisis support if flagged, list of matched services. Clinical interpretation stays on the recipient side.
 
 ---
 
-## Part 2 — CHW persona (Friendship Bench / lay-counsellor model)
+## Scope
 
-### Goals
+### New public route — `/self-assess`
 
-- CHW is the **first port of call**: lightweight, supportive, non-clinical.
-- Strict separation from clinician account; cannot reach diagnostic / treatment / crisis-protocol modules.
-- Can manage **multiple parallel client sessions** (up to 5 active), append new sessions to the same client, save-and-close, end-and-archive, or refer upward.
-- Same audio-capture pipeline as the psychiatrist (chunked 50 s transcription, multi-language).
-- PHQ-9 only for screening; PHQ-9 Item 9 ≥ 1 forces an upward-referral pathway.
-- Referral targets chosen from a registry of nurses, psychiatrists, and emergency facilities.
+Replicates the uploaded `selfassess.tsx` design (welcome → consent → demographics → PHQ-9 → narrative → result), with these adjustments to the original:
 
-### What already exists (reuse, don't rebuild)
+- **Geolocation step** added to demographics: ask permission via `navigator.geolocation`, store lat/lng. Region dropdown becomes the manual fallback.
+- **Result page** lists facilities ranked by distance (Haversine) when coordinates available; otherwise falls back to region match.
+- Uses existing `transcribe-audio` and `process-document` edge functions (already in project) for voice/document narrative input.
+- Uses existing `SUPPORTED_LANGUAGES` and shared design tokens.
 
-- `app_role` enum + `user_roles` table + `has_role()` helper.
-- `src/lib/permissions.ts` with `isCHW`, `canProcessNarrative`, etc.
-- `CHWReferralForm.tsx` (basic version — needs facility dropdown + urgency-driven routing).
-- `useAudioRecorder` hook + `InputZone` recording UI (chunked at 50 s).
-- `PHQ9Form` with auto-scoring and Item-9 alert.
-- `patients`, `screening_assessments`, `referrals`, `audit_events` tables.
+### New public route — `/facility` (Facility Portal)
 
-### Gaps to fill
+For authenticated clinicians (psychiatrist/admin role). Lists inbound `facility_referrals` for facilities they belong to, with full clinical view: PHQ-9 score+severity+Item-9 flag, narrative, transcript, **AI-suggested differential diagnoses + cultural formulation** (generated server-side via existing `suggest-diagnosis` edge function on submission). Accept / decline / escalate actions, SLA timer.
 
-**Database (migration)**
+### CHW inbound referrals
 
-- Add `'chw'` to `app_role` enum (currently the enum has admin/moderator/user/psychiatrist; CHWs are being approximated). Confirm and add if missing.
-- New table `chw_sessions` — one row per CHW encounter:
-  - `id`, `chw_id` (auth uid), `patient_id`, `session_number` (int, 1-based per patient), `status` (`active` | `completed` | `referred` | `archived`), `narrative_text`, `transcript_language`, `phq9_score`, `phq9_severity`, `phq9_item9_flag`, `notes`, `started_at`, `ended_at`, `created_at`, `updated_at`.
-  - RLS: CHW reads/writes only their own; admins read all.
-  - Trigger: cap at 5 simultaneous `status='active'` sessions per CHW (raise exception in BEFORE INSERT/UPDATE).
-  - Trigger: auto-increment `session_number` per `(chw_id, patient_id)` so session #2, #3 are appended, not resumed.
-- New table `referral_targets` — facility/specialist directory:
-  - `id`, `name`, `target_type` (`nurse` | `psychiatrist` | `emergency_centre` | `clinic`), `contact_phone`, `contact_email`, `address`, `is_active`. Seeded with a few example rows; admin-managed.
-  - Public read for authenticated users; admin write.
-- Extend `referrals` to optionally link `chw_session_id` (nullable FK).
-- Audit hooks: insert `audit_events` rows on session start, save-and-close, end, refer.
+Extend existing `CHWDashboard` with a "Self-Referrals" tab that surfaces `facility_referrals` routed to a CHW-tier facility (or unassigned, when no facility exists in region). Same clinical view as the Facility Portal.
 
-**Sign-up flow**
+### Database (migration)
 
-- New "Sign up as Community Health Worker" tab on `/auth` (separate from clinician sign-up).
-- On CHW sign-up, the trigger assigns role `chw` (not `psychiatrist`).
-- Update `handle_new_user` so the role is read from `raw_user_meta_data->>'intended_role'` (defaulting to `psychiatrist` for backward compatibility), set during sign-up via `options.data`.
+Following the uploaded SQL, with two changes:
 
-**CHW dashboard (new route `/chw`)**
-A dedicated, simplified UI — *not* the clinician `Index.tsx` with hidden tabs:
+- Add `latitude numeric`, `longitude numeric` to `self_assessment_sessions` and `facilities`.
+- Add `ai_diagnostic_suggestions jsonb` to `self_assessment_sessions` (populated server-side at "complete"; never returned to the public client).
 
-- **Header**: large role badge "Community Health Worker", help button.
-- **Active Sessions strip**: cards for up to 5 active sessions (patient identifier, started time, last activity, "Resume", "End"). Cap enforced.
-- **Tabs**:
-  1. **Clients** — register a new client (re-use `PatientForm`), list existing clients with their session history.
-  2. **New Session** — pick or register a client → opens session workspace.
-  3. **Referrals** — list of referrals this CHW has sent + status.
-  4. **History** — completed/archived sessions, read-only.
+Tables: `self_assessment_sessions`, `self_assessment_consents`, `self_assessment_responses`, `facilities`, `facility_referrals`. RLS exactly as uploaded — public has zero direct DB access; all writes through the `self-assess` edge function via service role; reads of clinical data restricted to admins + facility members + assigned CHWs.
 
-**Session workspace component (`CHWSessionWorkspace.tsx`)**
+### New edge function — `self-assess`
 
-- Audio recorder (re-uses `useAudioRecorder` + transcription pipeline — identical schema/chunking to clinician).
-- Narrative text area populated by transcription.
-- "Run PHQ-9" button → renders `PHQ9Form` (already saves to `screening_assessments`); on submit, score is copied onto `chw_sessions`.
-- Item-9 ≥ 1 → red banner with safety guidance + auto-opens **Refer Up** drawer; cannot be dismissed without choosing a target.
-- Footer action bar:
-  - **Save & Pause** (status remains `active`, narrative+score persisted).
-  - **Save & Close** (status → `completed`, ended_at set; client record kept for future return).
-  - **End Session without Save** (status → `archived`, narrative discarded; confirmation required).
-  - **Refer Up** (status → `referred`; opens upgraded `CHWReferralForm`).
-- "Start Session 2" appears on a client who already has a closed session — creates a new row with `session_number = previous + 1` (appended, not resumed).
+Single endpoint handling actions: `start`, `save_consents`, `save_demographics`, `save_screening`, `save_narrative`, `complete`. Deployed with `verify_jwt = false` (public). Uses service role internally, validates inputs with Zod, hashes IP for consent records, runs `suggest-diagnosis` on `complete` and stores result on the session. Match logic: geolocation distance when available, region match otherwise; create `facility_referrals` rows; return only facility contact info to the caller.
 
-**Upgraded `CHWReferralForm.tsx**`
+### Auth changes
 
-- Two-step picker: target type (Nurse / Psychiatrist / Emergency Centre) → pulls matching rows from `referral_targets` + registered clinicians from `profiles`+`user_roles`.
-- Urgency mapped to action: `routine` (24-h window), `urgent` (same-day), `emergency` (auto-pre-fills emergency centre + shows phone numbers).
-- Free-text concern note + auto-attached transcript and PHQ-9 score.
-- Writes to `referrals` with `context='chw_upward_referral'` and `chw_session_id` set; flips session status to `referred`.
+- Update `App.tsx` to match the uploaded version (RoleGuard + new routes).
+- `/self-assess` and `/facility` (login wall) and `/chw` already covered.
+- No verification toggle needed — instant signup is already configured per prior turn.
 
-**Routing & guards**
+---
 
-- Add `/chw` route in `App.tsx` wrapped in a guard that redirects clinicians to `/` and CHWs away from `/`.
-- Update `Index.tsx` to early-redirect `chw` role to `/chw`.
+## Out of scope (call out for later)
 
-**Permissions tightening**
+- Admin UI to manage `facilities` directory (seed data only via migration for now).
+- Practitioner-level matching (only facility-level in v1).
+- Two-way messaging between patient and facility.
+- Live notifications/SMS to facilities (referral row + portal polling only; Twilio dispatch deferred).
 
-- Server-side: edge functions `process-narrative`, `suggest-diagnosis`, `generate-treatment-plan` should reject callers with `chw` role (read JWT claim + cross-check `user_roles`). Defence-in-depth, even though the UI hides them.
-- Client-side: `permissions.ts` already covers UI gating — extend with `canStartChwSession`, `canAccessChwDashboard`, `canManageReferralTargets` (admin only).
+---
 
-### Files to create / modify
+## Technical notes
 
+```
+Public browser  ──► /self-assess (no auth)
+                       │ POST /functions/v1/self-assess
+                       ▼
+              Edge fn (service role)
+                ├─ writes session/consents/responses
+                ├─ on `complete`:
+                │    ├─ calls suggest-diagnosis  ──► stored on session (recipient-only)
+                │    └─ matches facilities by lat/lng (Haversine) or region
+                ├─ inserts facility_referrals rows
+                └─ returns: { facilities[], is_crisis }   ← NO diagnosis fields
 
-| File                                         | Action                                                                                |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `vite.config.ts`                             | Remove stale Supabase fallbacks                                                       |
-| migration                                    | `chw_sessions`, `referral_targets`, RLS, triggers, role-routing in `handle_new_user`  |
-| `src/pages/Auth.tsx`                         | Add "Sign up as CHW" path (sets `intended_role: 'chw'`)                               |
-| `src/pages/CHWDashboard.tsx`                 | New — CHW home with the four tabs                                                     |
-| `src/components/chw/CHWSessionWorkspace.tsx` | New — recording + PHQ-9 + action bar                                                  |
-| `src/components/chw/ActiveSessionsStrip.tsx` | New                                                                                   |
-| `src/components/chw/CHWClientList.tsx`       | New                                                                                   |
-| `src/components/chw/CHWHistory.tsx`          | New                                                                                   |
-| `src/components/CHWReferralForm.tsx`         | Upgrade with target-type picker + facility directory                                  |
-| `src/lib/permissions.ts`                     | Add `canAccessChwDashboard`, etc.                                                     |
-| `src/App.tsx`                                | Add `/chw` route + redirect logic                                                     |
-| `src/pages/Index.tsx`                        | Redirect CHW role away                                                                |
-| Edge functions                               | Add role check in `process-narrative`, `suggest-diagnosis`, `generate-treatment-plan` |
+Authenticated clinician ──► /facility   ──► reads referrals + diagnostic suggestions
+Authenticated CHW       ──► /chw "Self-Referrals" tab
+```
 
+Files to create:
 
-### Out of scope for this pass (Phase 2)
+- `src/pages/SelfAssess.tsx` (from upload, with geolocation addition)
+- `src/pages/FacilityPortal.tsx` (inbox + clinical detail view)
+- `src/pages/CHWWorkspace.tsx` *or* extend existing `CHWDashboard.tsx` with a Self-Referrals tab (will use the existing dashboard to avoid duplication)
+- `src/components/RoleGuard.tsx`
+- `supabase/functions/self-assess/index.ts`
+- Migration: tables above + seed a handful of Zimbabwe/SA facilities
 
-- Admin UI for managing `referral_targets` (DB-seeded rows are enough to start).
-- Offline sync for CHW field use.
-- SMS dispatch of referrals via Twilio (data is captured; dispatch can wire up later).
+Files to edit:
 
-### Open questions before I implement
+- `src/App.tsx` — adopt the uploaded routing (with `RoleGuard`).
+- `src/components/Footer.tsx` *(if needed)* — link to `/self-assess` from public surface.
+- `supabase/config.toml` — `[functions.self-assess] verify_jwt = false`.
 
-1. Should CHWs be able to **register new patients themselves**, or only see patients pre-registered by a clinician? (Friendship-bench model says yes — they register.) - YES THEY CAN WITH PII EMBEDDED
-2. Is the **5 simultaneous active sessions** cap correct, or per-patient limit instead? EACH PATIENT CAN HAVE 5 CONSECUTIVE SESSIONS. THEY HAVE ONE TODAY, IT IS SAVED ITHER TO RESUME LATER IN THE DAY OR TOMORROW (IF CUT OFF UNEXPECTADLY) OR SAVED AS COMPLETE SO NEXT TIME WE START ON SESSION 2
-3. For the referral-target directory, is it OK to seed Zimbabwe-relevant emergency numbers (e.g. ZRP, public hospitals) as defaults, or do you want it empty until an admin populates?. YES THIS IS OK, THEY CAN BE EDITED WITH REAL SUBSCRIBERS LATER
-4. On "End Session without Save", should the audio recording also be discarded, or kept in cold storage for governance/audit even if the narrative isn't? I THINK EVERYTHING IS DISCARDED IN CASE A RECORDING WAS DONE UNINTENTIONALLY
+---
+
+## Open questions
+
+1. **Recipient routing on submission** — when both a facility and a CHW serve the same region, who receives by default?
+  - (a) Facility first, CHW only if no facility (current uploaded SQL behaviour)
+  - (b) Always both
+  - (c) Patient picks from the matched list [THE PERSON ASSESSING THEMSELVES SELECTS WHERE THEY WANT TO ROUTE THEIR SUBMISSION TO - ITS NOT AN AUTOMATED PROCESS. THEY CHOSE WHERE IT WILL BE SUBMITTED TO]
+2. **Facility seed data** — happy with me seeding ~6 placeholder Zimbabwe + SA facilities for testing, or do you want the directory to start empty? YES
+3. **CHW page** — extend existing `CHWDashboard` (recommended) or create a new `CHWWorkspace.tsx` per the uploaded `App.tsx`? OK
