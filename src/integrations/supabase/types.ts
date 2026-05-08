@@ -452,6 +452,141 @@ export type Database = {
           },
         ]
       }
+      facilities: {
+        Row: {
+          accepts_referrals: boolean
+          city: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          emergency_capable: boolean
+          facility_name: string
+          facility_type: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          operating_hours: Json
+          province: string | null
+          region: string
+          services_offered: string[]
+          specialisations: string[]
+          subscription_tier: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          accepts_referrals?: boolean
+          city?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          emergency_capable?: boolean
+          facility_name: string
+          facility_type?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          operating_hours?: Json
+          province?: string | null
+          region: string
+          services_offered?: string[]
+          specialisations?: string[]
+          subscription_tier?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          accepts_referrals?: boolean
+          city?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          emergency_capable?: boolean
+          facility_name?: string
+          facility_type?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          operating_hours?: Json
+          province?: string | null
+          region?: string
+          services_offered?: string[]
+          specialisations?: string[]
+          subscription_tier?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      facility_referrals: {
+        Row: {
+          accepted_at: string | null
+          assigned_to: string | null
+          created_at: string
+          escalated: boolean
+          escalation_reason: string | null
+          facility_id: string
+          id: string
+          matched_at: string
+          notes: string | null
+          session_id: string
+          sla_deadline: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          escalated?: boolean
+          escalation_reason?: string | null
+          facility_id: string
+          id?: string
+          matched_at?: string
+          notes?: string | null
+          session_id: string
+          sla_deadline?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          escalated?: boolean
+          escalation_reason?: string | null
+          facility_id?: string
+          id?: string
+          matched_at?: string
+          notes?: string | null
+          session_id?: string
+          sla_deadline?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facility_referrals_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "facilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facility_referrals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "self_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idiom_submissions: {
         Row: {
           clinical_context: string | null
@@ -883,6 +1018,148 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      self_assessment_consents: {
+        Row: {
+          consent_text_version: string
+          consent_type: string
+          granted: boolean
+          granted_at: string
+          id: string
+          ip_hash: string | null
+          language_code: string
+          session_id: string
+        }
+        Insert: {
+          consent_text_version?: string
+          consent_type: string
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          ip_hash?: string | null
+          language_code?: string
+          session_id: string
+        }
+        Update: {
+          consent_text_version?: string
+          consent_type?: string
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          ip_hash?: string | null
+          language_code?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "self_assessment_consents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "self_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      self_assessment_responses: {
+        Row: {
+          completed_at: string
+          id: string
+          interpretation: string | null
+          item_flags: Json
+          responses: Json
+          session_id: string
+          severity_level: string | null
+          tool_type: string
+          total_score: number
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          interpretation?: string | null
+          item_flags?: Json
+          responses: Json
+          session_id: string
+          severity_level?: string | null
+          tool_type: string
+          total_score: number
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          interpretation?: string | null
+          item_flags?: Json
+          responses?: Json
+          session_id?: string
+          severity_level?: string | null
+          tool_type?: string
+          total_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "self_assessment_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "self_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      self_assessment_sessions: {
+        Row: {
+          ai_diagnostic_suggestions: Json | null
+          completed_at: string | null
+          created_at: string
+          demographics: Json
+          document_urls: string[]
+          expires_at: string
+          id: string
+          language_code: string
+          latitude: number | null
+          location_region: string | null
+          longitude: number | null
+          narrative_text: string | null
+          risk_level: string | null
+          session_token: string
+          status: string
+          triage_result: Json | null
+        }
+        Insert: {
+          ai_diagnostic_suggestions?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          demographics?: Json
+          document_urls?: string[]
+          expires_at?: string
+          id?: string
+          language_code?: string
+          latitude?: number | null
+          location_region?: string | null
+          longitude?: number | null
+          narrative_text?: string | null
+          risk_level?: string | null
+          session_token?: string
+          status?: string
+          triage_result?: Json | null
+        }
+        Update: {
+          ai_diagnostic_suggestions?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          demographics?: Json
+          document_urls?: string[]
+          expires_at?: string
+          id?: string
+          language_code?: string
+          latitude?: number | null
+          location_region?: string | null
+          longitude?: number | null
+          narrative_text?: string | null
+          risk_level?: string | null
+          session_token?: string
+          status?: string
+          triage_result?: Json | null
+        }
+        Relationships: []
       }
       treatment_notes: {
         Row: {
