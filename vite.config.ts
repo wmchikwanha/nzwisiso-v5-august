@@ -7,9 +7,10 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
-  const fallbackProjectId = "pmfbhmaeysgcmbapghby";
+  // Fallbacks must match the current remixed project (read from .env at build time).
+  const fallbackProjectId = "ethlttlixqmraqvlqpve";
   const fallbackPublishableKey =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtZmJobWFleXNnY21iYXBnaGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2MTIyMDAsImV4cCI6MjA3OTE4ODIwMH0.HTzl10QXTipfFwn8ZqdrF5tuutA79NPjZJuO4Fg5rEQ";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0aGx0dGxpeHFtcmFxdmxxcHZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NzA5MDUsImV4cCI6MjA5MTE0NjkwNX0.lDpt2zXGyCtj6Lbzzz3lWIfYShJg_oXBZRntdLyx0Zk";
 
   const supabaseUrl =
     env.VITE_SUPABASE_URL ||
