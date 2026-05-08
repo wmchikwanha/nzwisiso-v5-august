@@ -176,6 +176,68 @@ export type Database = {
           },
         ]
       }
+      chw_sessions: {
+        Row: {
+          chw_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          narrative_text: string | null
+          notes: string | null
+          patient_id: string
+          phq9_item9_flag: boolean | null
+          phq9_score: number | null
+          phq9_severity: string | null
+          session_number: number
+          started_at: string
+          status: string
+          transcript_language: string | null
+          updated_at: string
+        }
+        Insert: {
+          chw_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          narrative_text?: string | null
+          notes?: string | null
+          patient_id: string
+          phq9_item9_flag?: boolean | null
+          phq9_score?: number | null
+          phq9_severity?: string | null
+          session_number?: number
+          started_at?: string
+          status?: string
+          transcript_language?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chw_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          narrative_text?: string | null
+          notes?: string | null
+          patient_id?: string
+          phq9_item9_flag?: boolean | null
+          phq9_score?: number | null
+          phq9_severity?: string | null
+          session_number?: number
+          started_at?: string
+          status?: string
+          transcript_language?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chw_sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consents: {
         Row: {
           consent_type: string
@@ -648,8 +710,48 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_targets: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
+          chw_session_id: string | null
           context: string
           created_at: string
           crisis_intervention_id: string | null
@@ -663,10 +765,12 @@ export type Database = {
           referral_type: string
           specialist_type: string | null
           status: string
+          target_id: string | null
           updated_at: string
           urgency: string
         }
         Insert: {
+          chw_session_id?: string | null
           context?: string
           created_at?: string
           crisis_intervention_id?: string | null
@@ -680,10 +784,12 @@ export type Database = {
           referral_type: string
           specialist_type?: string | null
           status?: string
+          target_id?: string | null
           updated_at?: string
           urgency?: string
         }
         Update: {
+          chw_session_id?: string | null
           context?: string
           created_at?: string
           crisis_intervention_id?: string | null
@@ -697,15 +803,30 @@ export type Database = {
           referral_type?: string
           specialist_type?: string | null
           status?: string
+          target_id?: string | null
           updated_at?: string
           urgency?: string
         }
         Relationships: [
           {
+            foreignKeyName: "referrals_chw_session_id_fkey"
+            columns: ["chw_session_id"]
+            isOneToOne: false
+            referencedRelation: "chw_sessions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "referrals_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "referral_targets"
             referencedColumns: ["id"]
           },
         ]
