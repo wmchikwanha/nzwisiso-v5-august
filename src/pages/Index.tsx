@@ -312,6 +312,12 @@ const Index = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {userRole === "admin" && (
+                  <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Console
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={signOut} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out

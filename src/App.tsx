@@ -10,6 +10,7 @@ import PatientIntake from "./pages/PatientIntake";
 import SelfAssess from "./pages/SelfAssess";
 import FacilityPortal from "./pages/FacilityPortal";
 import CHWDashboard from "./pages/CHWDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import { RoleGuard } from "./components/RoleGuard";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,14 @@ const App = () => (
               element={
                 <RoleGuard allowRoles={["chw", "admin"]}>
                   <CHWDashboard />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <RoleGuard allowRoles={["admin"]}>
+                  <AdminDashboard />
                 </RoleGuard>
               }
             />

@@ -152,6 +152,11 @@ const Auth = () => {
             <CardDescription className="text-center">
               Sign in to access your psychiatric assessment tool
             </CardDescription>
+            <div className="text-center pt-2">
+              <a href="/self-assess" className="text-xs text-primary hover:underline">
+                Not a clinician? Take a confidential self-assessment →
+              </a>
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
