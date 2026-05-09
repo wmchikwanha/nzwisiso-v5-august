@@ -7,7 +7,13 @@ export const Footer = ({ portfolioUrl }: FooterProps) => {
 
   return (
     <footer className="py-4 px-6 border-t border-border">
-      <div className="container mx-auto flex justify-start">
+      <div className="container mx-auto flex items-center justify-between gap-4">
+        <a
+          href="/self-assess"
+          className="text-xs font-medium text-primary hover:underline"
+        >
+          Take a confidential self-assessment →
+        </a>
         <div className="text-left space-y-0.5">
           <div className="flex items-center justify-start gap-1.5">
             <span className="text-muted-foreground/50 text-[10px]">©</span>
