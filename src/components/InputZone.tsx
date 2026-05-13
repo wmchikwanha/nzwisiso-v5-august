@@ -58,6 +58,8 @@ export const InputZone = ({ value, onChange, onProcess, isProcessing, processing
   const pendingChunkRef = useRef<Blob | null>(null);
   const allChunksRef = useRef<Blob[]>([]);
   const isManualStopRef = useRef(false);
+  const chunkStartedAtRef = useRef<Date | null>(null);
+  const chunkIndexRef = useRef(0);
 
   useEffect(() => {
     fetchPatients();
