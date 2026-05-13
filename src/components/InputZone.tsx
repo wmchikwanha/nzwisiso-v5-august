@@ -17,6 +17,14 @@ interface Patient {
   patient_identifier: string;
 }
 
+export interface TranscribedChunk {
+  text: string;
+  startedAt: string; // ISO
+  endedAt: string;   // ISO
+  durationSeconds: number;
+  languageCode: string;
+}
+
 interface InputZoneProps {
   value: string;
   onChange: (value: string) => void;
@@ -25,9 +33,10 @@ interface InputZoneProps {
   processingTokens?: number;
   selectedPatientId: string | null;
   onPatientSelect: (patientId: string | null) => void;
+  onChunkTranscribed?: (chunk: TranscribedChunk) => void | Promise<void>;
 }
 
-export const InputZone = ({ value, onChange, onProcess, isProcessing, processingTokens = 0, selectedPatientId, onPatientSelect }: InputZoneProps) => {
+export const InputZone = ({ value, onChange, onProcess, isProcessing, processingTokens = 0, selectedPatientId, onPatientSelect, onChunkTranscribed }: InputZoneProps) => {
   const { user, userRole } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const { toast } = useToast();
