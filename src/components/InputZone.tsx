@@ -226,6 +226,10 @@ export const InputZone = ({ value, onChange, onProcess, isProcessing, processing
 
   // Background chunk transcription - uses ref to avoid stale closures
   const transcribeChunkInBackground = async (chunkBlob: Blob) => {
+    const startedAt = chunkStartedAtRef.current ?? new Date();
+    const endedAt = new Date();
+    // Reset start marker for the next chunk immediately so concurrent recording is timed correctly
+    chunkStartedAtRef.current = new Date();
     try {
       console.log('🎯 Background transcribing chunk, size:', chunkBlob.size, 'bytes');
       
@@ -253,7 +257,24 @@ export const InputZone = ({ value, onChange, onProcess, isProcessing, processing
       accumulatedTranscriptRef.current = newTranscript;
       setAccumulatedTranscript(newTranscript);
       onChange(newTranscript);
-      
+
+      // Persist this chunk via callback (e.g. CHW workspace writes a row)
+      const chunkText = (data?.text ?? "").toString().trim();
+      if (chunkText && onChunkTranscribed) {
+        try {
+          await onChunkTranscribed({
+            text: chunkText,
+            startedAt: startedAt.toISOString(),
+            endedAt: endedAt.toISOString(),
+            durationSeconds: Math.max(0, (endedAt.getTime() - startedAt.getTime()) / 1000),
+            languageCode: selectedLanguage,
+          });
+          chunkIndexRef.current += 1;
+        } catch (cbErr) {
+          console.error('❌ onChunkTranscribed handler failed:', cbErr);
+        }
+      }
+
       console.log('✅ Chunk transcribed successfully, accumulated length:', newTranscript.length);
     } catch (error) {
       console.error('❌ Chunk transcription error:', error);
