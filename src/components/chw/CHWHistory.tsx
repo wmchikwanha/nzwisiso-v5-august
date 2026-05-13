@@ -189,17 +189,58 @@ export function CHWHistory() {
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm flex items-center gap-2">
-                        <FileText className="h-4 w-4" /> Conversation Narrative
+                        <FileText className="h-4 w-4" /> Conversation Transcript
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {openSession.narrative_text ? (
-                        <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed">
-                          {openSession.narrative_text}
-                        </pre>
+                      {chunks.length > 0 ? (
+                        <ol className="space-y-3">
+                          {chunks.map((c) => {
+                            const start = new Date(c.started_at);
+                            const end = new Date(c.ended_at);
+                            const duration =
+                              c.duration_seconds != null
+                                ? Number(c.duration_seconds).toFixed(1)
+                                : ((end.getTime() - start.getTime()) / 1000).toFixed(1);
+                            return (
+                              <li
+                                key={c.id}
+                                className="border-l-2 border-primary/40 pl-3 space-y-1"
+                              >
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                  <span className="font-mono">
+                                    {start.toLocaleTimeString()} – {end.toLocaleTimeString()}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">
+                                    #{c.chunk_index + 1}
+                                  </Badge>
+                                  <span>{duration}s</span>
+                                  {c.language_code && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {c.language_code}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                                  {c.text}
+                                </p>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      ) : openSession.narrative_text ? (
+                        <>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Per-chunk timestamps not available for this session (recorded before
+                            chunk-level capture was enabled). Showing combined narrative:
+                          </p>
+                          <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed">
+                            {openSession.narrative_text}
+                          </pre>
+                        </>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          No narrative captured for this session.
+                          No transcript captured for this session.
                         </p>
                       )}
                     </CardContent>
