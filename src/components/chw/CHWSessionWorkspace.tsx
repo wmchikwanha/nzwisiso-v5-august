@@ -203,6 +203,35 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
             onPatientSelect={() => {
               /* CHW workspace is locked to the active session's patient */
             }}
+            onChunkTranscribed={async (chunk) => {
+              if (!user) return;
+              // Find next chunk_index for this session
+              const { data: existing } = await supabase
+                .from("chw_session_transcript_chunks")
+                .select("chunk_index")
+                .eq("session_id", sessionId)
+                .order("chunk_index", { ascending: false })
+                .limit(1);
+              const nextIndex = existing && existing.length > 0 ? (existing[0].chunk_index as number) + 1 : 0;
+              const { error } = await supabase.from("chw_session_transcript_chunks").insert({
+                session_id: sessionId,
+                chw_id: user.id,
+                chunk_index: nextIndex,
+                started_at: chunk.startedAt,
+                ended_at: chunk.endedAt,
+                duration_seconds: chunk.durationSeconds,
+                language_code: chunk.languageCode,
+                text: chunk.text,
+              });
+              if (error) {
+                console.error("Failed to save transcript chunk:", error);
+                toast({
+                  title: "Transcript chunk not saved",
+                  description: error.message,
+                  variant: "destructive",
+                });
+              }
+            }}
           />
         </CardContent>
       </Card>

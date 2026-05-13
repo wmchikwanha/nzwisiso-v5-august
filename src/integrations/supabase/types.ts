@@ -176,6 +176,53 @@ export type Database = {
           },
         ]
       }
+      chw_session_transcript_chunks: {
+        Row: {
+          chunk_index: number
+          chw_id: string
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string
+          id: string
+          language_code: string | null
+          session_id: string
+          started_at: string
+          text: string
+        }
+        Insert: {
+          chunk_index: number
+          chw_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at: string
+          id?: string
+          language_code?: string | null
+          session_id: string
+          started_at: string
+          text: string
+        }
+        Update: {
+          chunk_index?: number
+          chw_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string
+          id?: string
+          language_code?: string | null
+          session_id?: string
+          started_at?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chw_session_transcript_chunks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chw_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chw_sessions: {
         Row: {
           chw_id: string
