@@ -187,6 +187,8 @@ export const InputZone = ({ value, onChange, onProcess, isProcessing, processing
         isManualStopRef.current = false;
         setIsManualStop(false);
         allChunksRef.current = []; // Reset chunks for new session
+        chunkIndexRef.current = 0;
+        chunkStartedAtRef.current = new Date();
         await startRecording();
         toast({
           title: "Recording Started",
