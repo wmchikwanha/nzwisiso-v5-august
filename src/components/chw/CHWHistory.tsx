@@ -21,6 +21,7 @@ export function CHWHistory() {
   const [openSession, setOpenSession] = useState<any | null>(null);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [phq9, setPhq9] = useState<any | null>(null);
+  const [chunks, setChunks] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -50,8 +51,9 @@ export function CHWHistory() {
     setOpenSession(row);
     setReferrals([]);
     setPhq9(null);
+    setChunks([]);
 
-    const [{ data: refs }, { data: scr }] = await Promise.all([
+    const [{ data: refs }, { data: scr }, { data: chs }] = await Promise.all([
       supabase
         .from("referrals")
         .select("*")
@@ -65,9 +67,15 @@ export function CHWHistory() {
         .order("administered_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("chw_session_transcript_chunks")
+        .select("*")
+        .eq("session_id", row.id)
+        .order("chunk_index", { ascending: true }),
     ]);
     setReferrals(refs || []);
     setPhq9(scr || null);
+    setChunks(chs || []);
   };
 
   if (!rows.length) {
