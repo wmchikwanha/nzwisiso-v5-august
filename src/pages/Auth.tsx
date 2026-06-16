@@ -150,7 +150,7 @@ const Auth = () => {
               Mental Health Clinical Assistant
             </CardTitle>
             <CardDescription className="text-center">
-              Sign in to access your psychiatric assessment tool
+              Sign up/in to use this decision support tool.
             </CardDescription>
             <div className="text-center pt-2">
               <a href="/self-assess" className="text-xs text-primary hover:underline">
@@ -167,6 +167,10 @@ const Auth = () => {
               
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+  <p className="text-blue-800">
+    <strong>Privacy Note:</strong> You can use temporary email addresses for instant testing with no verification steps required.. 
+    Different account types require separate email addresses
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
                     <Input
