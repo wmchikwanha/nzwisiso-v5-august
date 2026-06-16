@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-// import "./lib/i18n/config"; 
+import "./lib/i18n/index.ts"; 
 // import { registerOfflineSW } from "./lib/offline/registerSW";
 
 createRoot(document.getElementById("root")!).render(
@@ -13,5 +13,5 @@ createRoot(document.getElementById("root")!).render(
 
 // Fire-and-forget. The wrapper refuses to register in dev / Lovable
 // preview / iframes and unregisters any stale app SW it finds there.
-void registerOfflineSW();
+// void registerOfflineSW();
 
