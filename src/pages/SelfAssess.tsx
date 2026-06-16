@@ -908,7 +908,7 @@ export default function SelfAssess() {
                       </div>
                     </CardContent>
                   </Card>
-
+)}
                   {/* Facility registration CTA */}
                   <Card className="bg-primary/5 border-primary/20">
                     <CardContent className="pt-6 text-center space-y-3">
@@ -919,7 +919,7 @@ export default function SelfAssess() {
                       </Button>
                     </CardContent>
                   </Card>
-
+)}
                   <div className="text-center">
                     <Button variant="outline" onClick={() => window.location.href = "/"}>
                       {t.result.homeButton}
@@ -933,3 +933,4 @@ export default function SelfAssess() {
           </div>
         );
       }
+  export default SelfAssess; // Ensure this is SelfAssess, not Auth
