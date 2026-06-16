@@ -110,7 +110,7 @@ async function callApi(body: Record<string, unknown>) {
   return data;
 }
 
-export default function SelfAssess() {
+function SelfAssess() {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("welcome");
 
@@ -915,7 +915,7 @@ export default function SelfAssess() {
                       </div>
                     </CardContent>
                   </Card>
-)}
+
                   {/* Facility registration CTA */}
                                     <Card className="bg-primary/5 border-primary/20">
                                       <CardContent className="pt-6 text-center space-y-3">
@@ -940,7 +940,6 @@ export default function SelfAssess() {
                                 )}
                               </div>
                             </div>
-                          </div>
                         </main>
 
                         <footer className="py-8 border-t bg-muted/30">
