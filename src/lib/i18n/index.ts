@@ -37,7 +37,18 @@ export { isRTL } from './types';
 
 /** Full list of supported self-assessment language codes. */
 export const SELF_ASSESS_LANGS = Object.keys(STRINGS);
+// Update the STRINGS object to include all imported languages
+const STRINGS: Record<string, SelfAssessStrings> = {
+  en, sn, nd, st, zu, xh, af, sw, fr, pt, ur, ar
+};
 
+/** Get the strings dictionary for a language, with English fallback. */
+export function getStrings(lang: string): SelfAssessStrings {
+  // This will now successfully return 'sn' or 'zu' instead of falling back to 'en'
+  return STRINGS[lang] ?? en;
+}
+
+export const EN_STRINGS = en;
 /** Human-readable language names for the self-assessment picker. */
 export const SELF_ASSESS_LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
