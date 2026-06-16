@@ -476,43 +476,42 @@ export default function SelfAssess() {
                     </div>
 
                     <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
-                      <p className="text-sm font-medium text-destructive flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        {t.welcome.notEmergencyTitle}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {t.welcome.notEmergencyBody}
-                      </p>
-                      <div className="mt-2 space-y-1">
-                        {CRISIS_NUMBERS.slice(0, 2).map((c) => (
-                          <p key={c.number} className="text-xs">
-                            <strong>{t.crisis.services[c.key]}:</strong>{" "}
-                            <a href={`tel:${c.number.replace(/\s/g, "")}`} className="text-destructive underline">{c.number}</a>
-                          </p>
-                        ))}
-                      </div>
-                    </div>
+                    <p className="text-sm font-medium text-destructive">
+                                            {t.welcome.notEmergencyTitle}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {t.welcome.notEmergencyBody}
+                                          </p>
+                                        </div>
 
-                    <div className="space-y-2">
-                      <Label>{t.welcome.languageLabel}</Label>
-                      <Select value={lang} onValueChange={setLang}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {SELF_ASSESS_LANGS.map(code => (
-                            <SelectItem key={code} value={code}>{SELF_ASSESS_LANGUAGE_NAMES[code] ?? code}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                                        <div className="space-y-2">
+                                          <Label>{t.welcome.languageLabel}</Label>
+                                          <Select value={lang} onValueChange={setLang}>
+                                            <SelectTrigger>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {SELF_ASSESS_LANGS.map((code) => (
+                                                <SelectItem key={code} value={code}>
+                                                  {SELF_ASSESS_LANGUAGE_NAMES[code] ?? code}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
 
-                    <Button onClick={startSession} disabled={loading} className="w-full" size="lg">
-                      {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                      {t.welcome.startButton}
-                      <ChevronRight className="w-4 h-4 ms-2" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                                        <Button
+                                          className="w-full h-12 text-lg"
+                                          onClick={startSession}
+                                          disabled={loading}
+                                        >
+                                          {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                                          {t.welcome.startButton}
+                                          <ChevronRight className="ml-2 h-5 w-5" />
+                                        </Button>
+                                      </CardContent>
+                                    </Card>
+                                  )}
 
               {/* ── CONSENT ─── */}
               {step === "consent" && (
@@ -933,12 +932,16 @@ export default function SelfAssess() {
                       {t.result.homeButton}
                     </Button>
                   </div>
-                </div>
-              )}
-            </main>
+                  </div>
+                     </main>
 
-            <Footer />
-          </div>
-        );
-      }
-  export default SelfAssess; // Ensure this is SelfAssess, not Auth
+                     <footer className="py-8 border-t bg-muted/30">
+                       <div className="max-w-3xl mx-auto px-6 text-center text-sm text-muted-foreground">
+                         <p>© {new Date().getFullYear()} Nzwisiso. All rights reserved.</p>
+                          </div>
+                        </footer>
+                      </div>
+                    );
+                  }
+
+                  export default SelfAssess
