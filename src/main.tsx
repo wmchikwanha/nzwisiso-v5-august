@@ -13,5 +13,5 @@ createRoot(document.getElementById("root")!).render(
 
 // Fire-and-forget. The wrapper refuses to register in dev / Lovable
 // preview / iframes and unregisters any stale app SW it finds there.
-void registerOfflineSW();
+// void registerOfflineSW();
 
