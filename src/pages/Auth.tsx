@@ -172,7 +172,7 @@ const Auth = () => {
     <strong>Privacy Note:</strong> You can use temporary email addresses for instant testing with no verification steps required.. 
     Different account types require separate email addresses
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signiselfassessn-email">Email</Label>
                     <Input
                       id="signin-email"
                       name="email"

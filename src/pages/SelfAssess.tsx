@@ -312,10 +312,15 @@ export default function SelfAssess() {
         reader.onloadend = async () => {
           const base64 = (reader.result as string).split(",")[1];
           try {
-            const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe-audio`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_KEY}`, apikey: SUPABASE_KEY },
-              body: JSON.stringify({ audio: base64, languageCode: lang }), // Changed from preferredLanguage to lang            });
+            <selection>            const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe-audio`, {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${SUPABASE_KEY}`,
+                            apikey: SUPABASE_KEY
+                          },
+                          body: JSON.stringify({ audio: base64, languageCode: lang })
+                        });</selection>
             const data = await res.json();
             if (data.text) {
               setNarrativeText(prev => prev ? `${prev}\n\n${data.text}` : data.text);
