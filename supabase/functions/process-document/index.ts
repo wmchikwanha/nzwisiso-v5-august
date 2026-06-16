@@ -22,9 +22,9 @@ serve(async (req) => {
   }
 
   try {
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error('ANTHROPIC_API_KEY is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const { document, fileName, mimeType } = await req.json();
@@ -35,7 +35,6 @@ serve(async (req) => {
 
     console.log('Processing document:', fileName, 'type:', mimeType);
 
-    // DOC/DOCX are not supported — Claude reads PDFs and images, not binary Word formats
     if (UNSUPPORTED_TYPES.includes(mimeType)) {
       return new Response(
         JSON.stringify({
@@ -45,9 +44,6 @@ serve(async (req) => {
       );
     }
 
-    // Build message content based on file type
-    // PDFs: use Claude's native document support
-    // Images (png/jpg/gif/webp): use vision
     const isPDF = mimeType === SUPPORTED_PDF_TYPE;
     const isImage = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mimeType);
 
@@ -58,45 +54,27 @@ serve(async (req) => {
       );
     }
 
-    const documentContent = isPDF
-      ? {
-          type: 'document' as const,
-          source: {
-            type: 'base64' as const,
-            media_type: 'application/pdf' as const,
-            data: document,
-          },
-        }
-      : {
-          type: 'image' as const,
-          source: {
-            type: 'base64' as const,
-            media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-            data: document,
-          },
-        };
+    // Gemini via Lovable AI Gateway accepts PDFs and images as base64 data URLs in image_url
+    const dataUrl = `data:${mimeType};base64,${document}`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'pdfs-2024-09-25', // Required for PDF document support
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
-        system: 'You are a document text extraction assistant for a psychiatric clinical system. Extract ALL text content from the provided document faithfully and completely. Preserve structure (headings, paragraphs, lists, tables). Do not summarise or interpret — extract the raw text exactly as written. If the document contains clinical notes, patient narratives, or assessment data, preserve every detail.',
+        model: 'google/gemini-2.5-flash',
         messages: [
+          {
+            role: 'system',
+            content: 'You are a document text extraction assistant for a psychiatric clinical system. Extract ALL text content from the provided document faithfully and completely. Preserve structure (headings, paragraphs, lists, tables). Do not summarise or interpret — extract the raw text exactly as written. If the document contains clinical notes, patient narratives, or assessment data, preserve every detail.',
+          },
           {
             role: 'user',
             content: [
-              documentContent,
-              {
-                type: 'text',
-                text: `Extract all text content from this document (${fileName}). Return only the extracted text, preserving structure and formatting. Do not add commentary.`,
-              },
+              { type: 'image_url', image_url: { url: dataUrl } },
+              { type: 'text', text: `Extract all text content from this document (${fileName}). Return only the extracted text, preserving structure and formatting. Do not add commentary.` },
             ],
           },
         ],
@@ -105,12 +83,20 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Claude API error:', response.status, errorText);
-      throw new Error(`Claude API error: ${response.status}`);
+      console.error('Lovable AI error:', response.status, errorText);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits to your Lovable workspace.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const extractedText = data.content?.[0]?.text || '';
+    const extractedText = data?.choices?.[0]?.message?.content || '';
 
     console.log('Document processed successfully, extracted', extractedText.length, 'characters');
 

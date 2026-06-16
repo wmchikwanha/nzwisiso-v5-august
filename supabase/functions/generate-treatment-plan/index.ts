@@ -13,24 +13,14 @@ serve(async (req) => {
   try {
     const { screeningData, mseFindings, patientContext } = await req.json();
 
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     const clinicalContext = buildClinicalContext(screeningData, mseFindings, patientContext);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 8192,
-        system: `You are a psychiatric clinical decision support system providing evidence-based treatment recommendations for Southern African mental health contexts. You support clinicians in Zimbabwe, South Africa, Botswana, and Zambia.
+    const systemPrompt = `You are a psychiatric clinical decision support system providing evidence-based treatment recommendations for Southern African mental health contexts. You support clinicians in Zimbabwe, South Africa, Botswana, and Zambia.
 
 CRITICAL CONSTRAINTS:
 - "AI suggests, clinician decides" — all recommendations require professional clinical review
@@ -59,125 +49,131 @@ CULTURAL CONTEXT:
 - moyo unorwadza (Shona): "the heart is painful" — somatic expression of grief
 - amafufunyana (Zulu/Xhosa): spirit possession — ICD-11 6B63, culturally appropriate explanation
 
-STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacological considerations (class only, no dosages), monitoring plan, and referral criteria.`,
-        messages: [{ role: 'user', content: clinicalContext }],
-        tools: [
-          {
-            name: 'generate_treatment_plan',
-            description: 'Generate structured evidence-based treatment recommendations',
-            input_schema: {
-              type: 'object',
-              properties: {
-                primary_interventions: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      intervention: { type: 'string' },
-                      rationale: { type: 'string' },
-                      evidence_base: { type: 'string', description: 'WHO mhGAP, NICE, or other guideline citation' },
-                      priority: { type: 'string', enum: ['urgent', 'high', 'moderate', 'low'] }
-                    },
-                    required: ['intervention', 'rationale', 'evidence_base', 'priority']
-                  }
-                },
-                psychosocial_interventions: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      therapy_type: { type: 'string' },
-                      description: { type: 'string' },
-                      target_symptoms: { type: 'array', items: { type: 'string' } },
-                      session_frequency: { type: 'string' },
-                      evidence_level: { type: 'string' }
-                    },
-                    required: ['therapy_type', 'description', 'target_symptoms']
-                  }
-                },
-                pharmacological_considerations: {
-                  type: 'object',
-                  properties: {
-                    indicated: { type: 'boolean' },
-                    medication_classes: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          class: { type: 'string', description: 'Medication class only — no specific drugs or dosages' },
-                          rationale: { type: 'string' },
-                          monitoring_requirements: { type: 'string' },
-                          cultural_considerations: { type: 'string' }
-                        }
-                      }
-                    },
-                    contraindications_to_assess: { type: 'array', items: { type: 'string' } }
-                  }
-                },
-                monitoring_plan: {
-                  type: 'object',
-                  properties: {
-                    follow_up_frequency: { type: 'string' },
-                    outcome_measures: { type: 'array', items: { type: 'string' } },
-                    red_flags: { type: 'array', items: { type: 'string' } },
-                    review_timeline: { type: 'string' }
-                  }
-                },
-                referral_criteria: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      trigger: { type: 'string' },
-                      specialist_type: { type: 'string' },
-                      urgency: { type: 'string', enum: ['immediate', 'urgent', 'routine'] }
-                    }
-                  }
-                },
-                cultural_adaptations: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  description: 'Specific cultural considerations for this patient context'
-                },
-                patient_education_points: {
-                  type: 'array',
-                  items: { type: 'string' }
+STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacological considerations (class only, no dosages), monitoring plan, and referral criteria.`;
+
+    const toolSchema = {
+      type: 'object',
+      properties: {
+        primary_interventions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              intervention: { type: 'string' },
+              rationale: { type: 'string' },
+              evidence_base: { type: 'string' },
+              priority: { type: 'string', enum: ['urgent', 'high', 'moderate', 'low'] }
+            },
+            required: ['intervention', 'rationale', 'evidence_base', 'priority']
+          }
+        },
+        psychosocial_interventions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              therapy_type: { type: 'string' },
+              description: { type: 'string' },
+              target_symptoms: { type: 'array', items: { type: 'string' } },
+              session_frequency: { type: 'string' },
+              evidence_level: { type: 'string' }
+            },
+            required: ['therapy_type', 'description', 'target_symptoms']
+          }
+        },
+        pharmacological_considerations: {
+          type: 'object',
+          properties: {
+            indicated: { type: 'boolean' },
+            medication_classes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  class: { type: 'string' },
+                  rationale: { type: 'string' },
+                  monitoring_requirements: { type: 'string' },
+                  cultural_considerations: { type: 'string' }
                 }
-              },
-              required: [
-                'primary_interventions',
-                'psychosocial_interventions',
-                'monitoring_plan',
-                'referral_criteria'
-              ]
+              }
+            },
+            contraindications_to_assess: { type: 'array', items: { type: 'string' } }
+          }
+        },
+        monitoring_plan: {
+          type: 'object',
+          properties: {
+            follow_up_frequency: { type: 'string' },
+            outcome_measures: { type: 'array', items: { type: 'string' } },
+            red_flags: { type: 'array', items: { type: 'string' } },
+            review_timeline: { type: 'string' }
+          }
+        },
+        referral_criteria: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              trigger: { type: 'string' },
+              specialist_type: { type: 'string' },
+              urgency: { type: 'string', enum: ['immediate', 'urgent', 'routine'] }
             }
           }
+        },
+        cultural_adaptations: { type: 'array', items: { type: 'string' } },
+        patient_education_points: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['primary_interventions', 'psychosocial_interventions', 'monitoring_plan', 'referral_criteria']
+    };
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: clinicalContext },
         ],
-        tool_choice: { type: 'tool', name: 'generate_treatment_plan' }
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'generate_treatment_plan',
+              description: 'Generate structured evidence-based treatment recommendations',
+              parameters: toolSchema,
+            },
+          },
+        ],
+        tool_choice: { type: 'function', function: { name: 'generate_treatment_plan' } },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Claude API error:', response.status, errorText);
-      throw new Error(`Claude API error: ${response.status}`);
+      console.error('Lovable AI error:', response.status, errorText);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits to your Lovable workspace.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Claude response received, stop_reason:', data.stop_reason);
-
-    if (data.stop_reason === 'max_tokens') {
-      console.error('Treatment plan response truncated — max_tokens reached');
-      throw new Error('Treatment plan generation failed: response was truncated before completion. This indicates the input is too large or the model hit the token limit.');
-    }
-
-    // Extract tool use result from Claude's response format
-    const toolUseBlock = data.content?.find((block: { type: string }) => block.type === 'tool_use');
-    if (!toolUseBlock || toolUseBlock.name !== 'generate_treatment_plan') {
+    const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+    const argsStr = toolCall?.function?.arguments;
+    if (!argsStr) {
+      console.error('No tool call in AI response:', JSON.stringify(data).slice(0, 500));
       throw new Error('No treatment plan generated — invalid response format');
     }
-
-    const treatmentPlan = toolUseBlock.input;
+    const treatmentPlan = typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr;
 
     console.log('Treatment plan generated successfully');
 
