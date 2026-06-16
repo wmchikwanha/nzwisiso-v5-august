@@ -2,8 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import "./lib/i18n/config"; 
-import { registerOfflineSW } from "./lib/offline/registerSW";
+// import "./lib/i18n/config"; 
+// import { registerOfflineSW } from "./lib/offline/registerSW";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
