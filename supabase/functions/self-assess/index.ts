@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -53,7 +53,7 @@ async function generateAiSuggestions(opts: {
   language?: string;
   narrative?: string;
 }) {
-  if (!ANTHROPIC_API_KEY) return null;
+  if (!LOVABLE_API_KEY) return null;
 
   const system = `You are a psychiatric diagnostic consultant. The data below comes from a public self-assessment. Provide preliminary diagnostic considerations strictly for the receiving clinician — never to be shown to the self-assessor. Use ICD-11. Cultural context: Southern African (Zimbabwe/SA). Be cautious; this is a screening signal only. Always include the disclaimer that the data is self-reported and unverified.`;
 
@@ -79,26 +79,27 @@ Provide JSON with shape:
 Output JSON only, no prose.`;
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2048,
-        system,
-        messages: [{ role: "user", content: user }],
+        model: "google/gemini-2.5-flash",
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
       }),
     });
     if (!res.ok) {
-      console.error("Claude error", res.status, await res.text());
+      console.error("Lovable AI error", res.status, await res.text());
       return null;
     }
     const data = await res.json();
-    const text = data?.content?.[0]?.text ?? "";
+    const text = data?.choices?.[0]?.message?.content ?? "";
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return { raw: text };
     try {
