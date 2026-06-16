@@ -20,7 +20,7 @@ import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 import { getStrings, SELF_ASSESS_LANGS, SELF_ASSESS_LANGUAGE_NAMES } from "@/lib/i18n";
 
 // Inside the component:
-const t = getStrings(preferredLanguage);
+const t = getStrings(lang);
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -129,7 +129,6 @@ export default function SelfAssess() {
   const [ageBand, setAgeBand] = useState("");
   const [gender, setGender] = useState("");
   const [region, setRegion] = useState("");
-  const [preferredLanguage, setPreferredLanguage] = useState("en");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [geoStatus, setGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
 
@@ -215,7 +214,8 @@ export default function SelfAssess() {
       await callApi({
         action: "save_demographics",
         session_token: sessionToken,
-        demographics: { age_band: ageBand, gender, preferred_language: preferredLanguage },
+        // CHANGE THIS LINE BELOW:
+        demographics: { age_band: ageBand, gender, preferred_language: lang },
         location_region: region,
         latitude: coords?.lat,
         longitude: coords?.lng,
@@ -224,7 +224,7 @@ export default function SelfAssess() {
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally { setLoading(false); }
-  }, [ageBand, gender, region, preferredLanguage, sessionToken, coords, toast]);
+  }, [ageBand, gender, region, lang, sessionToken, coords, toast]); // Add lang here
 
   // ── Save screening ──
   const saveScreening = useCallback(async () => {
@@ -315,8 +315,7 @@ export default function SelfAssess() {
             const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe-audio`, {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_KEY}`, apikey: SUPABASE_KEY },
-              body: JSON.stringify({ audio: base64, languageCode: preferredLanguage }),
-            });
+              body: JSON.stringify({ audio: base64, languageCode: lang }), // Changed from preferredLanguage to lang            });
             const data = await res.json();
             if (data.text) {
               setNarrativeText(prev => prev ? `${prev}\n\n${data.text}` : data.text);
@@ -334,7 +333,7 @@ export default function SelfAssess() {
     } catch {
       toast({ title: "Microphone access denied", variant: "destructive" });
     }
-  }, [preferredLanguage, toast]);
+  }, [lang, toast]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {

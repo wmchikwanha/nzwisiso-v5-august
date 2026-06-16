@@ -25,13 +25,6 @@ const STRINGS: Record<string, SelfAssessStrings> = {
   en, sn, nd, st, zu, xh, af, sw, fr, pt, ur, ar,
 };
 
-/** Get the strings dictionary for a language, with English fallback. */
-export function getStrings(lang: string): SelfAssessStrings {
-  return STRINGS[lang] ?? en;
-}
-
-export const EN_STRINGS = en;
-
 export type { SelfAssessStrings } from './types';
 export { isRTL } from './types';
 
