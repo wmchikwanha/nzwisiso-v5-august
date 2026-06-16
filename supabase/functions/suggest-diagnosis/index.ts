@@ -47,9 +47,9 @@ serve(async (req) => {
   }
 
   try {
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error('ANTHROPIC_API_KEY is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const { screeningData, mseFindings, patientContext, framework }: DiagnosticRequest = await req.json();
@@ -93,168 +93,118 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
 
     const clinicalSummary = buildClinicalSummary(screeningData, mseFindings, patientContext);
 
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const toolSchema = {
+      type: 'object',
+      properties: {
+        primaryDiagnosis: {
+          type: 'object',
+          properties: {
+            code: { type: 'string', description: `${framework} diagnostic code` },
+            name: { type: 'string', description: 'Full diagnosis name' },
+            confidence: { type: 'number', description: 'Confidence percentage (0-100)' },
+            supportingEvidence: { type: 'array', items: { type: 'string' } },
+            reasoning: { type: 'string' }
+          },
+          required: ['code', 'name', 'confidence', 'supportingEvidence', 'reasoning']
+        },
+        differentialDiagnoses: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              code: { type: 'string' },
+              name: { type: 'string' },
+              confidence: { type: 'number' },
+              supportingEvidence: { type: 'array', items: { type: 'string' } },
+              reasoning: { type: 'string' }
+            },
+            required: ['code', 'name', 'confidence', 'supportingEvidence', 'reasoning']
+          }
+        },
+        culturalFormulation: { type: 'string' },
+        clinicalAlerts: { type: 'array', items: { type: 'string' } },
+        additionalAssessments: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['primaryDiagnosis', 'differentialDiagnoses', 'culturalFormulation', 'clinicalAlerts']
+    };
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
-        stream: true,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: clinicalSummary }],
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: clinicalSummary },
+        ],
         tools: [
           {
-            name: 'suggest_diagnoses',
-            description: 'Provide structured diagnostic suggestions based on clinical evidence',
-            input_schema: {
-              type: 'object',
-              properties: {
-                primaryDiagnosis: {
-                  type: 'object',
-                  properties: {
-                    code: { type: 'string', description: `${framework} diagnostic code` },
-                    name: { type: 'string', description: 'Full diagnosis name' },
-                    confidence: { type: 'number', description: 'Confidence percentage (0-100)' },
-                    supportingEvidence: {
-                      type: 'array',
-                      items: { type: 'string' },
-                      description: 'Clinical findings supporting this diagnosis'
-                    },
-                    reasoning: { type: 'string', description: 'Brief clinical reasoning' }
-                  },
-                  required: ['code', 'name', 'confidence', 'supportingEvidence', 'reasoning']
-                },
-                differentialDiagnoses: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      code: { type: 'string' },
-                      name: { type: 'string' },
-                      confidence: { type: 'number' },
-                      supportingEvidence: { type: 'array', items: { type: 'string' } },
-                      reasoning: { type: 'string' }
-                    },
-                    required: ['code', 'name', 'confidence', 'supportingEvidence', 'reasoning']
-                  },
-                  description: 'Alternative diagnoses to consider'
-                },
-                culturalFormulation: {
-                  type: 'string',
-                  description: 'Cultural considerations relevant to diagnosis in Southern African context'
-                },
-                clinicalAlerts: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  description: 'Important clinical alerts (risk factors, urgent considerations)'
-                },
-                additionalAssessments: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  description: 'Recommended additional assessments or investigations'
-                }
-              },
-              required: ['primaryDiagnosis', 'differentialDiagnoses', 'culturalFormulation', 'clinicalAlerts']
-            }
-          }
+            type: 'function',
+            function: {
+              name: 'suggest_diagnoses',
+              description: 'Provide structured diagnostic suggestions based on clinical evidence',
+              parameters: toolSchema,
+            },
+          },
         ],
-        tool_choice: { type: 'tool', name: 'suggest_diagnoses' }
+        tool_choice: { type: 'function', function: { name: 'suggest_diagnoses' } },
       }),
     });
 
-    if (!claudeResponse.ok) {
-      const errorText = await claudeResponse.text();
-      console.error('Claude API error:', claudeResponse.status, errorText);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('Lovable AI error:', aiResponse.status, errorText);
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits to your Lovable workspace.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       return new Response(
-        JSON.stringify({ error: `Claude API error: ${claudeResponse.status}` }),
+        JSON.stringify({ error: `AI gateway error: ${aiResponse.status}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Commit to streaming
+    const aiData = await aiResponse.json();
+    const toolCall = aiData?.choices?.[0]?.message?.tool_calls?.[0];
+    const argsStr = toolCall?.function?.arguments;
+    if (!argsStr) {
+      console.error('No tool call in AI response:', JSON.stringify(aiData).slice(0, 500));
+      throw new Error('Invalid AI response format — missing tool call');
+    }
+
+    const suggestions = typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr;
+    if (!suggestions.primaryDiagnosis || !suggestions.differentialDiagnoses) {
+      throw new Error('Invalid AI response format — missing required diagnostic fields');
+    }
+
+    const result = {
+      ...suggestions,
+      framework,
+      generatedAt: new Date().toISOString(),
+      disclaimer: 'AI-generated suggestion requiring clinical review. The final diagnosis is the responsibility of the treating clinician.',
+    };
+
+    // Emit as SSE to preserve the existing frontend contract
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
-
     (async () => {
-      const reader = claudeResponse.body!.getReader();
-      const decoder = new TextDecoder();
-      let evtBuffer = '';
-      let jsonBuffer = '';  // accumulates input_json_delta fragments for tool use
-      let tokenCount = 0;
-      let stopReason = '';
-
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          evtBuffer += decoder.decode(value, { stream: true });
-          const lines = evtBuffer.split('\n');
-          evtBuffer = lines.pop() ?? '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith('data: ')) continue;
-
-            const jsonStr = trimmed.slice(6);
-            if (jsonStr === '[DONE]') continue;
-
-            try {
-              const event = JSON.parse(jsonStr);
-
-              if (
-                event.type === 'content_block_delta' &&
-                event.delta?.type === 'input_json_delta' &&
-                event.delta?.partial_json
-              ) {
-                jsonBuffer += event.delta.partial_json;
-                tokenCount++;
-                if (tokenCount % 15 === 0) {
-                  await writer.write(encoder.encode(
-                    `data: ${JSON.stringify({ tokens: tokenCount })}\n\n`
-                  ));
-                }
-              } else if (event.type === 'message_delta' && event.delta?.stop_reason) {
-                stopReason = event.delta.stop_reason;
-              }
-            } catch { /* skip malformed SSE events */ }
-          }
-        }
-
-        // All tool input received — parse and validate
-        if (stopReason === 'max_tokens') {
-          throw new Error('AI response was truncated (max_tokens reached). Please try again.');
-        }
-        const suggestions = JSON.parse(jsonBuffer);
-        if (!suggestions.primaryDiagnosis || !suggestions.differentialDiagnoses) {
-          throw new Error('Invalid AI response format — missing required diagnostic fields');
-        }
-
-        const result = {
-          ...suggestions,
-          framework,
-          generatedAt: new Date().toISOString(),
-          disclaimer: 'AI-generated suggestion requiring clinical review. The final diagnosis is the responsibility of the treating clinician.',
-        };
-
-        console.log('Diagnostic suggestions generated successfully, tokens:', tokenCount);
         await writer.write(encoder.encode(`data: ${JSON.stringify({ result })}\n\n`));
-        await writer.write(encoder.encode('data: [DONE]\n\n'));
-      } catch (error) {
-        console.error('Streaming error in suggest-diagnosis:', error);
-        const msg = error instanceof Error ? error.message : 'Unknown error';
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
         await writer.write(encoder.encode('data: [DONE]\n\n'));
       } finally {
         writer.close();
       }
     })();
 
+    console.log('Diagnostic suggestions generated successfully');
     return new Response(readable, {
       headers: {
         ...corsHeaders,
