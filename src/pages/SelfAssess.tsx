@@ -931,25 +931,36 @@ function SelfAssess() {
                                       </CardContent>
                                     </Card>
 
-                                    <div className="text-center pt-4">
-                                                        <Button variant="outline" onClick={() => window.location.href = "/"}>
-                                                          {t.result.homeButton}
-                                                        </Button>
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </main>
+                                    {/* Facility registration CTA */}
+                                                <Card className="bg-primary/5 border-primary/20">
+                                                  <CardContent className="pt-6 text-center space-y-3">
+                                                    <p className="text-sm font-medium text-foreground">{t.result.facilityCtaPrompt}</p>
+                                                    <p className="text-xs text-muted-foreground">{t.result.facilityCtaBody}</p>
+                                                    <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground" onClick={() => window.location.href = "/facility"}>
+                                                      {t.result.facilityCtaButton}
+                                                    </Button>
+                                                  </CardContent>
+                                                </Card>
 
-                                          <footer className="py-8 border-t bg-muted/30">
-                                            <div className="max-w-3xl mx-auto px-6 text-center text-sm text-muted-foreground">
-                                              <p>© {new Date().getFullYear()} Nzwisiso. All rights reserved.</p>
-                                            </div>
-                                          </footer>
-                                        </div>
-                                      );
-                                    }
+                                     <div className="text-center pt-4">
+                                                         <Button variant="outline" onClick={() => window.location.href = "/"}>
+                                                           {t.result.homeButton}
+                                                         </Button>
+                                                       </div>
+                                                     </div>
+                                                   )}
+                                                 </div>
+                                               </div>
+                                             </div>
+                                           </main>
 
-                                    export default SelfAssess;
+                                           <footer className="py-8 border-t bg-muted/30">
+                                             <div className="max-w-3xl mx-auto px-6 text-center text-sm text-muted-foreground">
+                                               <p>© {new Date().getFullYear()} Nzwisiso. All rights reserved.</p>
+                                             </div>
+                                           </footer>
+                                         </div>
+                                       );
+                                     }
+
+                                     export default SelfAssess;
