@@ -168,11 +168,12 @@ const Auth = () => {
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
-  <p className="text-blue-800">
-    <strong>Privacy Note:</strong> You can use temporary email addresses for instant testing with no verification steps required.. 
-    Different account types require separate email addresses
+                    <p className="text-blue-800">
+                      <strong>Privacy Note:</strong> You can use temporary email addresses for instant testing with no verification steps required. Different account types require separate email addresses.
+                    </p>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signiselfassessn-email">Email</Label>
+                    <Label htmlFor="signin-email">Email</Label>
                     <Input
                       id="signin-email"
                       name="email"
