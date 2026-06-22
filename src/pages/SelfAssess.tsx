@@ -931,28 +931,12 @@ function SelfAssess() {
                                       </CardContent>
                                     </Card>
 
-                                    {/* Facility registration CTA */}
-                                                <Card className="bg-primary/5 border-primary/20">
-                                                  <CardContent className="pt-6 text-center space-y-3">
-                                                    <p className="text-sm font-medium text-foreground">{t.result.facilityCtaPrompt}</p>
-                                                    <p className="text-xs text-muted-foreground">{t.result.facilityCtaBody}</p>
-                                                    <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground" onClick={() => window.location.href = "/facility"}>
-                                                      {t.result.facilityCtaButton}
-                                                    </Button>
-                                                  </CardContent>
-                                                </Card>
-
                                      <div className="text-center pt-4">
-                                                         <Button variant="outline" onClick={() => window.location.href = "/"}>
-                                                           {t.result.homeButton}
-                                                         </Button>
-                                                       </div>
-                                                     </div>
-                                                   )}
-                                                 </div>
-                                               </div>
-                                             </div>
-                                           </main>
+                         <Button ...>{t.result.homeButton}</Button>
+                       </div>
+                     </div>    {/* closes <div className="space-y-6"> */}
+                   )}          {/* closes the ternary */}
+                 </main>       {/* closes <main> */}
 
                                            <footer className="py-8 border-t bg-muted/30">
                                              <div className="max-w-3xl mx-auto px-6 text-center text-sm text-muted-foreground">
