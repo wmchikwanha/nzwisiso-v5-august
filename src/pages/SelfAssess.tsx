@@ -94,10 +94,25 @@ async function callApi(body: Record<string, unknown>) {
   return data;
 }
 
+const LANG_STORAGE_KEY = "nzwisiso.selfAssess.lang";
+
+function readStoredLang(): string {
+  if (typeof window === "undefined") return "en";
+  try {
+    const stored = window.localStorage.getItem(LANG_STORAGE_KEY);
+    if (stored && SELF_ASSESS_LANGS.includes(stored)) return stored;
+  } catch { /* localStorage unavailable */ }
+  return "en";
+}
+
 function SelfAssess() {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("welcome");
-  const [lang, setLang] = useState<string>("en");
+  const [lang, setLangState] = useState<string>(() => readStoredLang());
+  const setLang = useCallback((next: string) => {
+    setLangState(next);
+    try { window.localStorage.setItem(LANG_STORAGE_KEY, next); } catch { /* ignore */ }
+  }, []);
   const t = getStrings(lang);
   const rtl = isRTL(lang);
 
