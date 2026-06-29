@@ -22,20 +22,17 @@ const Auth = () => {
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect to home if user is logged in
         if (session?.user) {
           navigate("/");
         }
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -269,6 +266,6 @@ const Auth = () => {
       <Footer />
     </div>
   );
-}
+};
 
 export default Auth;
