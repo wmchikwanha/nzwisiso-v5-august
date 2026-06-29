@@ -396,6 +396,14 @@ function SelfAssess() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => (window.location.href = "/auth")}
+            >
+              ← Back to Sign Up
+            </Button>
             {/* Always-on language switcher in header so users can change at any step */}
             <Select value={lang} onValueChange={setLang}>
               <SelectTrigger className="w-[150px] h-8 text-xs">
