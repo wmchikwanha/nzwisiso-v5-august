@@ -156,6 +156,11 @@ const Auth = () => {
             </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+              <p className="text-blue-800">
+                <strong>Privacy Note:</strong> You can use temporary email addresses, e.g. test@mail.com, for instant testing with no verification steps required. Different account types require separate email addresses.
+              </p>
+            </div>
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -164,11 +169,6 @@ const Auth = () => {
               
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
-                    <p className="text-blue-800">
-                      <strong>Privacy Note:</strong> You can use temporary email addresses, e.g. test@mail.com, for instant testing with no verification steps required. Different account types require separate email addresses.
-                    </p>
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
                     <Input
