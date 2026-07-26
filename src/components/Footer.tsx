@@ -34,7 +34,7 @@ export const Footer = ({ portfolioUrl }: FooterProps) => {
             )}
           </div>
           <p className="text-muted-foreground/45 text-[10px] font-normal">
-            Developed by Walt C
+            Developed by Walter C
           </p>
         </div>
       </div>
