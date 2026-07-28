@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Stethoscope, ChevronRight, ChevronLeft, Check, AlertTriangle, ShieldCheck,
   Loader2, Phone, Mail, Globe, Mic, MicOff, Upload, FileText, LocateFixed,
@@ -107,6 +108,22 @@ function readStoredLang(): string {
 
 function SelfAssess() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Reliable Back/Home action: clears any transient self-assess state
+  // (answers live only in component state, so unmounting suffices),
+  // preserves the persisted language preference, and routes via the SPA.
+  const handleBackToAuth = useCallback(() => {
+    try {
+      // Defensive: purge any legacy in-progress keys from earlier builds.
+      const keys = ["nzwisiso.selfAssess.draft", "nzwisiso.selfAssess.answers"];
+      keys.forEach((k) => {
+        window.localStorage.removeItem(k);
+        window.sessionStorage.removeItem(k);
+      });
+    } catch { /* ignore */ }
+    navigate("/auth");
+  }, [navigate]);
   const [step, setStep] = useState<Step>("welcome");
   const [lang, setLangState] = useState<string>(() => readStoredLang());
   const setLang = useCallback((next: string) => {
@@ -400,7 +417,7 @@ function SelfAssess() {
               variant="outline"
               size="sm"
               className="h-8 text-xs"
-              onClick={() => (window.location.href = "/auth")}
+              onClick={handleBackToAuth}
             >
               ← Back to Sign Up
             </Button>
