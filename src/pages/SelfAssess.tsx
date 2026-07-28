@@ -122,8 +122,28 @@ function SelfAssess() {
         window.sessionStorage.removeItem(k);
       });
     } catch { /* ignore */ }
-    navigate("/auth");
+    // Guard: always land on /auth via SPA nav; hard-fallback if router unavailable.
+    try {
+      navigate("/auth", { replace: true });
+    } catch {
+      window.location.assign("/auth");
+    }
   }, [navigate]);
+
+  const handleResetCopyCache = useCallback(() => {
+    try {
+      const prefixes = ["nzwisiso.selfAssess", "nzwisiso.copy", "nzwisiso.privacy"];
+      [window.localStorage, window.sessionStorage].forEach((store) => {
+        for (let i = store.length - 1; i >= 0; i--) {
+          const key = store.key(i);
+          if (key && prefixes.some((p) => key.startsWith(p))) store.removeItem(key);
+        }
+      });
+    } catch { /* ignore */ }
+    setLangState("en");
+    try { window.localStorage.setItem(LANG_STORAGE_KEY, "en"); } catch { /* ignore */ }
+    toast({ title: "Reset complete", description: "Language and cached copy cleared. Latest text loaded." });
+  }, []);
   const [step, setStep] = useState<Step>("welcome");
   const [lang, setLangState] = useState<string>(() => readStoredLang());
   const setLang = useCallback((next: string) => {
