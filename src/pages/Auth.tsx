@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { Footer } from "@/components/Footer";
+import { PRIVACY_NOTE } from "@/lib/copy";
 
 type IntendedRole = "psychiatrist" | "chw";
 
@@ -158,7 +159,7 @@ const Auth = () => {
           <CardContent>
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
               <p className="text-blue-800">
-                <strong>Privacy Note:</strong> You can use temporary email addresses, e.g. test@mail.com, for instant testing with no verification steps required. Different account types require separate email addresses.
+                <strong>Privacy Note:</strong> {PRIVACY_NOTE}
               </p>
             </div>
             <Tabs defaultValue="signin" className="w-full">
