@@ -130,6 +130,15 @@ function SelfAssess() {
     }
   }, [navigate]);
 
+  const [step, setStep] = useState<Step>("welcome");
+  const [lang, setLangState] = useState<string>(() => readStoredLang());
+  const setLang = useCallback((next: string) => {
+    setLangState(next);
+    try { window.localStorage.setItem(LANG_STORAGE_KEY, next); } catch { /* ignore */ }
+  }, []);
+  const t = getStrings(lang);
+  const rtl = isRTL(lang);
+
   const handleResetCopyCache = useCallback(() => {
     try {
       const prefixes = ["nzwisiso.selfAssess", "nzwisiso.copy", "nzwisiso.privacy"];
@@ -143,15 +152,7 @@ function SelfAssess() {
     setLangState("en");
     try { window.localStorage.setItem(LANG_STORAGE_KEY, "en"); } catch { /* ignore */ }
     toast({ title: "Reset complete", description: "Language and cached copy cleared. Latest text loaded." });
-  }, []);
-  const [step, setStep] = useState<Step>("welcome");
-  const [lang, setLangState] = useState<string>(() => readStoredLang());
-  const setLang = useCallback((next: string) => {
-    setLangState(next);
-    try { window.localStorage.setItem(LANG_STORAGE_KEY, next); } catch { /* ignore */ }
-  }, []);
-  const t = getStrings(lang);
-  const rtl = isRTL(lang);
+  }, [toast]);
 
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
