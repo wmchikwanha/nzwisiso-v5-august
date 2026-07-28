@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Stethoscope, ChevronRight, ChevronLeft, Check, AlertTriangle, ShieldCheck,
   Loader2, Phone, Mail, Globe, Mic, MicOff, Upload, FileText, LocateFixed,
@@ -400,7 +401,7 @@ function SelfAssess() {
               variant="outline"
               size="sm"
               className="h-8 text-xs"
-              onClick={() => (window.location.href = "/auth")}
+              onClick={handleBackToAuth}
             >
               ← Back to Sign Up
             </Button>
