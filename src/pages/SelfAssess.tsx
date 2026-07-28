@@ -122,8 +122,14 @@ function SelfAssess() {
         window.sessionStorage.removeItem(k);
       });
     } catch { /* ignore */ }
-    navigate("/auth");
+    // Guard: always land on /auth via SPA nav; hard-fallback if router unavailable.
+    try {
+      navigate("/auth", { replace: true });
+    } catch {
+      window.location.assign("/auth");
+    }
   }, [navigate]);
+
   const [step, setStep] = useState<Step>("welcome");
   const [lang, setLangState] = useState<string>(() => readStoredLang());
   const setLang = useCallback((next: string) => {
@@ -132,6 +138,21 @@ function SelfAssess() {
   }, []);
   const t = getStrings(lang);
   const rtl = isRTL(lang);
+
+  const handleResetCopyCache = useCallback(() => {
+    try {
+      const prefixes = ["nzwisiso.selfAssess", "nzwisiso.copy", "nzwisiso.privacy"];
+      [window.localStorage, window.sessionStorage].forEach((store) => {
+        for (let i = store.length - 1; i >= 0; i--) {
+          const key = store.key(i);
+          if (key && prefixes.some((p) => key.startsWith(p))) store.removeItem(key);
+        }
+      });
+    } catch { /* ignore */ }
+    setLangState("en");
+    try { window.localStorage.setItem(LANG_STORAGE_KEY, "en"); } catch { /* ignore */ }
+    toast({ title: "Reset complete", description: "Language and cached copy cleared. Latest text loaded." });
+  }, [toast]);
 
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -416,10 +437,33 @@ function SelfAssess() {
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs"
+              className="h-8 text-xs inline-flex items-center gap-1"
               onClick={handleBackToAuth}
+              aria-label="Back to Sign Up"
+              data-testid="self-assess-back"
             >
-              ← Back to Sign Up
+              {rtl ? (
+                <>
+                  <span>Back to Sign Up</span>
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                </>
+              ) : (
+                <>
+                  <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+                  <span>Back to Sign Up</span>
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={handleResetCopyCache}
+              aria-label="Reset language and cached copy"
+              data-testid="self-assess-reset"
+              title="Clear stored language & copy cache"
+            >
+              Reset
             </Button>
             {/* Always-on language switcher in header so users can change at any step */}
             <Select value={lang} onValueChange={setLang}>
