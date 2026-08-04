@@ -51,7 +51,7 @@ export const PatientList = ({ onSelectPatient, onCreatePatient, refreshKey = 0 }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, userRole]);
+  }, [user, userRole, refreshKey]);
 
   useEffect(() => {
     const filtered = patients.filter(patient =>
