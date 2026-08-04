@@ -18,8 +18,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { InputZone } from "@/components/InputZone";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { PHQ9Form } from "@/components/screening/PHQ9Form";
 import { CHWReferralPicker } from "./CHWReferralPicker";
+import { retainAudioChunk, hasRecordingConsent } from "@/lib/audio/retention";
+import { persistChwSessionFhir } from "@/lib/fhir/persist";
+
 import {
   Save,
   CheckCircle2,
@@ -58,6 +63,11 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
   const [showPhq9, setShowPhq9] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [retainAudio, setRetainAudio] = useState(false);
+  const [consentId, setConsentId] = useState<string | null>(null);
+  const [consentOk, setConsentOk] = useState(false);
+  const [retainedCount, setRetainedCount] = useState(0);
+
 
   useEffect(() => {
     (async () => {
@@ -75,9 +85,13 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
           .eq("id", (s as ChwSession).patient_id)
           .single();
         setPatientName(p?.patient_identifier || "Client");
+        const consent = await hasRecordingConsent((s as ChwSession).patient_id);
+        setConsentOk(consent.ok);
+        setConsentId(consent.consentId);
       }
     })();
   }, [sessionId]);
+
 
   const refreshSession = async () => {
     const { data } = await supabase.from("chw_sessions").select("*").eq("id", sessionId).single();
@@ -111,6 +125,25 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
       patient_id: session.patient_id,
       description: `Session #${session.session_number} for ${patientName} → ${status}`,
     });
+
+    // Write-through: append FHIR R4 resources for completed / referred sessions.
+    if (status !== "active") {
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("id, patient_identifier, gender, date_of_birth, language_preference")
+        .eq("id", session.patient_id)
+        .single();
+      await persistChwSessionFhir({
+        session: {
+          ...session,
+          status,
+          narrative_text: narrative,
+          ended_at: ended,
+          ...(extra as any),
+        },
+        patient: (patient as any) ?? null,
+      });
+    }
     return true;
   };
 
@@ -127,6 +160,7 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
       onExit();
     }
   };
+
 
   const handleDiscard = async () => {
     if (!session || !user) return;
@@ -195,6 +229,26 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex items-start justify-between gap-4 rounded-md border p-3">
+            <div className="space-y-1">
+              <Label htmlFor="retain-audio" className="text-sm font-medium">
+                Retain audio for research review
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {consentOk
+                  ? "Off by default. When on, each recorded segment is stored encrypted and can only be played back by the Principal Investigator or Safety Monitor. Every access is audited."
+                  : "Unavailable — no active recording consent on file for this client. Audio is transcribed and discarded."}
+                {retainedCount > 0 && ` ${retainedCount} segment(s) retained this session.`}
+              </p>
+            </div>
+            <Switch
+              id="retain-audio"
+              checked={retainAudio}
+              disabled={!consentOk}
+              onCheckedChange={setRetainAudio}
+            />
+          </div>
+
           <InputZone
             value={narrative}
             onChange={setNarrative}
@@ -203,6 +257,29 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
             onPatientSelect={() => {
               /* CHW workspace is locked to the active session's patient */
             }}
+            onAudioCaptured={
+              retainAudio && consentOk
+                ? async (blob, meta) => {
+                    try {
+                      const res = await retainAudioChunk(blob, {
+                        patientId: session.patient_id,
+                        chwSessionId: sessionId,
+                        languageCode: meta.languageCode,
+                        uploaderRole: "chw",
+                        consentId,
+                      });
+                      if (res) setRetainedCount((n) => n + 1);
+                    } catch (e: any) {
+                      toast({
+                        title: "Audio not retained",
+                        description: e?.message || "Upload failed — transcript is still saved.",
+                        variant: "destructive",
+                      });
+                    }
+                  }
+                : undefined
+            }
+
             onChunkTranscribed={async (chunk) => {
               if (!user) return;
               // Find next chunk_index for this session

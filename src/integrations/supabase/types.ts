@@ -120,6 +120,85 @@ export type Database = {
           },
         ]
       }
+      audio_recordings: {
+        Row: {
+          checksum: string | null
+          chw_session_id: string | null
+          consent_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          encounter_ref: string | null
+          id: string
+          language_code: string | null
+          mime_type: string
+          patient_id: string
+          retention_until: string
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          uploaded_by: string
+          uploader_role: string
+        }
+        Insert: {
+          checksum?: string | null
+          chw_session_id?: string | null
+          consent_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          encounter_ref?: string | null
+          id?: string
+          language_code?: string | null
+          mime_type?: string
+          patient_id: string
+          retention_until?: string
+          size_bytes?: number
+          storage_path: string
+          updated_at?: string
+          uploaded_by: string
+          uploader_role?: string
+        }
+        Update: {
+          checksum?: string | null
+          chw_session_id?: string | null
+          consent_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          encounter_ref?: string | null
+          id?: string
+          language_code?: string | null
+          mime_type?: string
+          patient_id?: string
+          retention_until?: string
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string
+          uploader_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_recordings_chw_session_id_fkey"
+            columns: ["chw_session_id"]
+            isOneToOne: false
+            referencedRelation: "chw_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audio_recordings_consent_id_fkey"
+            columns: ["consent_id"]
+            isOneToOne: false
+            referencedRelation: "consents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audio_recordings_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_events: {
         Row: {
           action: string
@@ -630,6 +709,53 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "self_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fhir_resources: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          patient_id: string | null
+          resource: Json
+          resource_id: string
+          resource_type: string
+          source_id: string | null
+          source_table: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          patient_id?: string | null
+          resource: Json
+          resource_id: string
+          resource_type: string
+          source_id?: string | null
+          source_table?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          patient_id?: string | null
+          resource?: Json
+          resource_id?: string
+          resource_type?: string
+          source_id?: string | null
+          source_table?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_resources_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -1284,7 +1410,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "psychiatrist" | "viewer" | "chw"
+      app_role:
+        | "admin"
+        | "psychiatrist"
+        | "viewer"
+        | "chw"
+        | "safety_monitor"
+        | "principal_investigator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1412,7 +1544,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "psychiatrist", "viewer", "chw"],
+      app_role: [
+        "admin",
+        "psychiatrist",
+        "viewer",
+        "chw",
+        "safety_monitor",
+        "principal_investigator",
+      ],
     },
   },
 } as const

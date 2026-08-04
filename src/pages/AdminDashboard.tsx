@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
-import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity } from "lucide-react";
+import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity, Lock } from "lucide-react";
 import { getRoleLabel } from "@/lib/permissions";
+import { AudioVault } from "@/components/admin/AudioVault";
+
 
 interface Member {
   id: string;
@@ -41,7 +43,7 @@ interface AuditEvent {
   description: string | null;
 }
 
-const ROLES = ["admin", "psychiatrist", "chw", "viewer"];
+const ROLES = ["admin", "psychiatrist", "chw", "viewer", "safety_monitor", "principal_investigator"];
 
 const AdminDashboard = () => {
   const { session, userRole, loading } = useAuth();
@@ -207,7 +209,14 @@ const AdminDashboard = () => {
           <TabsList>
             <TabsTrigger value="members"><ShieldCheck className="h-4 w-4 mr-2" />Members</TabsTrigger>
             <TabsTrigger value="activity"><Activity className="h-4 w-4 mr-2" />Activity</TabsTrigger>
+            <TabsTrigger value="audio"><Lock className="h-4 w-4 mr-2" />Audio</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="audio">
+            <AudioVault />
+          </TabsContent>
+
+
 
           <TabsContent value="members">
             <Card>

@@ -4,7 +4,16 @@
  * Psychiatrists and admins get full clinical access.
  */
 
-export type AppRole = "admin" | "psychiatrist" | "chw" | "viewer" | string | null;
+export type AppRole =
+  | "admin"
+  | "psychiatrist"
+  | "chw"
+  | "viewer"
+  | "safety_monitor"
+  | "principal_investigator"
+  | string
+  | null;
+
 
 const CLINICAL_ROLES: AppRole[] = ["psychiatrist", "admin"];
 
@@ -41,6 +50,15 @@ export const canAccessChwDashboard = (role: AppRole): boolean => role === "chw" 
 /** Can manage referral target directory (admins only) */
 export const canManageReferralTargets = (role: AppRole): boolean => role === "admin";
 
+/** Can read/play back retained clinical audio — PI and Safety Monitor only */
+export const canAccessRetainedAudio = (role: AppRole): boolean =>
+  role === "principal_investigator" || role === "safety_monitor";
+
+/** Can export FHIR R4 bundles */
+export const canExportFhir = (role: AppRole): boolean =>
+  isClinical(role) || canAccessRetainedAudio(role);
+
+
 /** Human-readable role label */
 export const getRoleLabel = (role: AppRole): string => {
   switch (role) {
@@ -48,6 +66,9 @@ export const getRoleLabel = (role: AppRole): string => {
     case "psychiatrist": return "Psychiatrist";
     case "chw": return "Community Health Worker";
     case "viewer": return "Viewer";
+    case "safety_monitor": return "Safety Monitor";
+    case "principal_investigator": return "Principal Investigator";
+
     default: return role || "Unknown";
   }
 };
