@@ -4,7 +4,16 @@
  * Psychiatrists and admins get full clinical access.
  */
 
-export type AppRole = "admin" | "psychiatrist" | "chw" | "viewer" | string | null;
+export type AppRole =
+  | "admin"
+  | "psychiatrist"
+  | "chw"
+  | "viewer"
+  | "safety_monitor"
+  | "principal_investigator"
+  | string
+  | null;
+
 
 const CLINICAL_ROLES: AppRole[] = ["psychiatrist", "admin"];
 
