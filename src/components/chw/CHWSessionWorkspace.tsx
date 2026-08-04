@@ -419,11 +419,17 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
               </AlertDialogContent>
             </AlertDialog>
             {item9Flag && (
-              <p className="md:col-span-4 text-xs text-destructive">
-                "Save & Close" is disabled while a suicidality flag is active. Send an emergency
-                referral first.
-              </p>
+              <div className="md:col-span-4 text-xs text-destructive flex flex-wrap items-center gap-2">
+                <span>
+                  A suicidality flag (PHQ-9 Item 9) is active, so this session must be escalated
+                  before it can be closed.
+                </span>
+                <Button size="sm" variant="destructive" onClick={() => setShowReferral(true)}>
+                  <ArrowUpRight className="h-4 w-4 mr-2" /> Send emergency referral
+                </Button>
+              </div>
             )}
+
           </CardContent>
         </Card>
       )}
