@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
-import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity } from "lucide-react";
+import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity, Lock } from "lucide-react";
 import { getRoleLabel } from "@/lib/permissions";
+import { AudioVault } from "@/components/admin/AudioVault";
+
 
 interface Member {
   id: string;
