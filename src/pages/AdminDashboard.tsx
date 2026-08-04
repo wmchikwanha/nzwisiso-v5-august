@@ -207,7 +207,14 @@ const AdminDashboard = () => {
           <TabsList>
             <TabsTrigger value="members"><ShieldCheck className="h-4 w-4 mr-2" />Members</TabsTrigger>
             <TabsTrigger value="activity"><Activity className="h-4 w-4 mr-2" />Activity</TabsTrigger>
+            <TabsTrigger value="audio"><Lock className="h-4 w-4 mr-2" />Audio</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="audio">
+            <AudioVault />
+          </TabsContent>
+
+
 
           <TabsContent value="members">
             <Card>
