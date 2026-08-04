@@ -294,6 +294,8 @@ const Index = () => {
               </div>
               <HelpCentre />
               <AboutDialog />
+              <FacilityRegistrationDialog mode="self" />
+
             </div>
             
             <DropdownMenu>
