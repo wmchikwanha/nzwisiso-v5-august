@@ -9,7 +9,26 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   userRole: string | null;
+  userRoles: string[];
 }
+
+/** Highest-privilege role wins when a user holds several. */
+const ROLE_PRECEDENCE = [
+  "admin",
+  "principal_investigator",
+  "safety_monitor",
+  "psychiatrist",
+  "chw",
+  "viewer",
+];
+
+const resolvePrimaryRole = (roles: string[]): string | null => {
+  if (!roles.length) return null;
+  for (const r of ROLE_PRECEDENCE) {
+    if (roles.includes(r)) return r;
+  }
+  return roles[0];
+};
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -17,7 +36,9 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   userRole: null,
+  userRoles: [],
 });
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
