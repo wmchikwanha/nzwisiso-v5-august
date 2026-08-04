@@ -85,9 +85,13 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
           .eq("id", (s as ChwSession).patient_id)
           .single();
         setPatientName(p?.patient_identifier || "Client");
+        const consent = await hasRecordingConsent((s as ChwSession).patient_id);
+        setConsentOk(consent.ok);
+        setConsentId(consent.consentId);
       }
     })();
   }, [sessionId]);
+
 
   const refreshSession = async () => {
     const { data } = await supabase.from("chw_sessions").select("*").eq("id", sessionId).single();
