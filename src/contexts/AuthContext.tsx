@@ -9,7 +9,26 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   userRole: string | null;
+  userRoles: string[];
 }
+
+/** Highest-privilege role wins when a user holds several. */
+const ROLE_PRECEDENCE = [
+  "admin",
+  "principal_investigator",
+  "safety_monitor",
+  "psychiatrist",
+  "chw",
+  "viewer",
+];
+
+const resolvePrimaryRole = (roles: string[]): string | null => {
+  if (!roles.length) return null;
+  for (const r of ROLE_PRECEDENCE) {
+    if (roles.includes(r)) return r;
+  }
+  return roles[0];
+};
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -17,7 +36,9 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   userRole: null,
+  userRoles: [],
 });
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -32,6 +53,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,27 +95,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .single();
+        .eq("user_id", userId);
 
       if (error) throw error;
-      setUserRole(data?.role ?? null);
+      const roles = (data ?? []).map((r) => r.role as string);
+      setUserRoles(roles);
+      setUserRole(resolvePrimaryRole(roles));
     } catch (error) {
       console.error("Error fetching user role:", error);
+      setUserRoles([]);
       setUserRole(null);
     }
   };
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setUserRole(null);
+    setUserRoles([]);
     navigate("/auth");
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, userRole }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut, userRole, userRoles }}>
+
       {children}
     </AuthContext.Provider>
   );
