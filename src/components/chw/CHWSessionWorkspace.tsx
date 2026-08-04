@@ -257,6 +257,29 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
             onPatientSelect={() => {
               /* CHW workspace is locked to the active session's patient */
             }}
+            onAudioCaptured={
+              retainAudio && consentOk
+                ? async (blob, meta) => {
+                    try {
+                      const res = await retainAudioChunk(blob, {
+                        patientId: session.patient_id,
+                        chwSessionId: sessionId,
+                        languageCode: meta.languageCode,
+                        uploaderRole: "chw",
+                        consentId,
+                      });
+                      if (res) setRetainedCount((n) => n + 1);
+                    } catch (e: any) {
+                      toast({
+                        title: "Audio not retained",
+                        description: e?.message || "Upload failed — transcript is still saved.",
+                        variant: "destructive",
+                      });
+                    }
+                  }
+                : undefined
+            }
+
             onChunkTranscribed={async (chunk) => {
               if (!user) return;
               // Find next chunk_index for this session
