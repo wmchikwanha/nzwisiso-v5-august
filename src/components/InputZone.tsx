@@ -242,6 +242,15 @@ export const InputZone = ({ value, onChange, onProcess, isProcessing, processing
       
       if (chunkBlob.size === 0) return;
 
+      // Retained-audio sink (opt-in). Never blocks transcription.
+      if (onAudioCaptured) {
+        Promise.resolve(onAudioCaptured(chunkBlob, { languageCode: selectedLanguage })).catch((e) =>
+          console.error('❌ Audio retention failed:', e),
+        );
+      }
+
+
+
       const reader = new FileReader();
       const base64Audio = await new Promise<string>((resolve) => {
         reader.onloadend = () => {
