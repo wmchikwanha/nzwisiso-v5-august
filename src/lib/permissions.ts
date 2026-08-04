@@ -50,6 +50,15 @@ export const canAccessChwDashboard = (role: AppRole): boolean => role === "chw" 
 /** Can manage referral target directory (admins only) */
 export const canManageReferralTargets = (role: AppRole): boolean => role === "admin";
 
+/** Can read/play back retained clinical audio — PI and Safety Monitor only */
+export const canAccessRetainedAudio = (role: AppRole): boolean =>
+  role === "principal_investigator" || role === "safety_monitor";
+
+/** Can export FHIR R4 bundles */
+export const canExportFhir = (role: AppRole): boolean =>
+  isClinical(role) || canAccessRetainedAudio(role);
+
+
 /** Human-readable role label */
 export const getRoleLabel = (role: AppRole): string => {
   switch (role) {
