@@ -72,16 +72,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .single();
+        .eq("user_id", userId);
 
       if (error) throw error;
-      setUserRole(data?.role ?? null);
+      const roles = (data ?? []).map((r) => r.role as string);
+      setUserRoles(roles);
+      setUserRole(resolvePrimaryRole(roles));
     } catch (error) {
       console.error("Error fetching user role:", error);
+      setUserRoles([]);
       setUserRole(null);
     }
   };
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
