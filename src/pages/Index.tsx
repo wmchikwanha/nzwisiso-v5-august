@@ -29,6 +29,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Footer } from "@/components/Footer";
 import { AboutDialog } from "@/components/AboutDialog";
+import { FacilityRegistrationDialog } from "@/components/facility/FacilityRegistrationDialog";
+
 import { HelpCentre } from "@/components/HelpCentre";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ScreeningToolSelector } from "@/components/screening/ScreeningToolSelector";
