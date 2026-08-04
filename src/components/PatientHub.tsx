@@ -222,7 +222,7 @@ export const PatientHub = ({
               </Badge>
             )}
             <Badge variant="outline" className="font-mono text-xs">
-              Active since {format(new Date(patient.created_at), "MMM yyyy")}
+              Active since {format(new Date(patient.created_at), "dd MMM yyyy, HH:mm")}
             </Badge>
           </div>
         </div>
