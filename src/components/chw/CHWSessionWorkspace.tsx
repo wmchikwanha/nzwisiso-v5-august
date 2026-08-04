@@ -63,6 +63,11 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
   const [showPhq9, setShowPhq9] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [retainAudio, setRetainAudio] = useState(false);
+  const [consentId, setConsentId] = useState<string | null>(null);
+  const [consentOk, setConsentOk] = useState(false);
+  const [retainedCount, setRetainedCount] = useState(0);
+
 
   useEffect(() => {
     (async () => {
