@@ -737,7 +737,10 @@ const Index = () => {
               </DialogDescription>
             </DialogHeader>
             <PatientForm
-              onSuccess={() => setShowPatientForm(false)}
+              onSuccess={() => {
+                setShowPatientForm(false);
+                setPatientRefreshKey((k) => k + 1);
+              }}
               onCancel={() => setShowPatientForm(false)}
             />
           </DialogContent>
