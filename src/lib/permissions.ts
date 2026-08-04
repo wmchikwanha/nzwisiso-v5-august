@@ -66,6 +66,9 @@ export const getRoleLabel = (role: AppRole): string => {
     case "psychiatrist": return "Psychiatrist";
     case "chw": return "Community Health Worker";
     case "viewer": return "Viewer";
+    case "safety_monitor": return "Safety Monitor";
+    case "principal_investigator": return "Principal Investigator";
+
     default: return role || "Unknown";
   }
 };
