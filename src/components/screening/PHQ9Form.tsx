@@ -66,7 +66,7 @@ export const PHQ9Form = ({ patientId, onComplete }: PHQ9FormProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("screening_assessments").insert({
+      const { data: saved, error } = await supabase.from("screening_assessments").insert({
         patient_id: patientId,
         user_id: user.id,
         tool_type: "PHQ9",
@@ -75,9 +75,15 @@ export const PHQ9Form = ({ patientId, onComplete }: PHQ9FormProps) => {
         severity_level: scoringResult.severityLevel,
         interpretation: scoringResult.interpretation,
         notes: notes || null
-      });
+      }).select("*").single();
 
       if (error) throw error;
+
+      // Write-through: append a FHIR R4 Observation alongside the relational row.
+      if (saved) {
+        await persistScreeningFhir(saved as any);
+      }
+
 
       toast({
         title: "PHQ-9 Saved",
