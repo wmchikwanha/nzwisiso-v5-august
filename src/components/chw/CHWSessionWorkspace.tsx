@@ -18,8 +18,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { InputZone } from "@/components/InputZone";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { PHQ9Form } from "@/components/screening/PHQ9Form";
 import { CHWReferralPicker } from "./CHWReferralPicker";
+import { retainAudioChunk, hasRecordingConsent } from "@/lib/audio/retention";
+import { persistChwSessionFhir } from "@/lib/fhir/persist";
+
 import {
   Save,
   CheckCircle2,
