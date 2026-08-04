@@ -34,9 +34,16 @@ interface InputZoneProps {
   selectedPatientId: string | null;
   onPatientSelect: (patientId: string | null) => void;
   onChunkTranscribed?: (chunk: TranscribedChunk) => void | Promise<void>;
+  /**
+   * Optional retained-audio sink. When provided, each captured audio segment is
+   * handed over for encrypted storage. Omitted = audio is transcribed and discarded
+   * (the default, unchanged behaviour).
+   */
+  onAudioCaptured?: (blob: Blob, meta: { languageCode: string }) => void | Promise<void>;
 }
 
-export const InputZone = ({ value, onChange, onProcess, isProcessing, processingTokens = 0, selectedPatientId, onPatientSelect, onChunkTranscribed }: InputZoneProps) => {
+export const InputZone = ({ value, onChange, onProcess, isProcessing, processingTokens = 0, selectedPatientId, onPatientSelect, onChunkTranscribed, onAudioCaptured }: InputZoneProps) => {
+
   const { user, userRole } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const { toast } = useToast();
