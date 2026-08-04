@@ -80,23 +80,17 @@ export function CHWReferralPicker({
         .order("name");
       setTargets((tData as ReferralTarget[]) || []);
 
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .in("role", ["psychiatrist", "admin"]);
-      if (roles?.length) {
-        const ids = roles.map((r) => r.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .in("id", ids);
-        setClinicians(
-          (profiles || []).map((p) => ({
-            ...p,
-            role: roles.find((r) => r.user_id === p.id)?.role || "psychiatrist",
-          }))
-        );
+      const { data: directory, error: dirErr } = await supabase.rpc("get_clinician_directory");
+      if (dirErr) {
+        console.error("clinician directory error", dirErr);
       }
+      setClinicians(
+        ((directory ?? []) as ClinicianProfile[]).map((c) => ({
+          ...c,
+          role: c.role || "psychiatrist",
+        }))
+      );
+
     })();
   }, []);
 
