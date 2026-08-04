@@ -23,9 +23,11 @@ interface Patient {
 interface PatientListProps {
   onSelectPatient: (patientId: string) => void;
   onCreatePatient: () => void;
+  /** Bump to force an immediate refetch (e.g. after creating a patient). */
+  refreshKey?: number;
 }
 
-export const PatientList = ({ onSelectPatient, onCreatePatient }: PatientListProps) => {
+export const PatientList = ({ onSelectPatient, onCreatePatient, refreshKey = 0 }: PatientListProps) => {
   const { user, userRole } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
@@ -35,6 +37,7 @@ export const PatientList = ({ onSelectPatient, onCreatePatient }: PatientListPro
 
   useEffect(() => {
     fetchPatients();
+
 
     const channel = supabase
       .channel('patients-changes')
