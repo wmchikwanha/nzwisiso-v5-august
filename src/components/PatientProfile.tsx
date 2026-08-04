@@ -447,7 +447,7 @@ export const PatientProfile = ({ patientId, onBack }: PatientProfileProps) => {
             <div>
               <CardTitle>{patient.patient_identifier}</CardTitle>
               <CardDescription>
-                Patient since {format(new Date(patient.created_at), 'MMMM dd, yyyy')}
+                Patient since {format(new Date(patient.created_at), 'dd MMMM yyyy, HH:mm')}
               </CardDescription>
             </div>
           </div>

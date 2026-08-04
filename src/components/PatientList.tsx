@@ -194,7 +194,7 @@ export const PatientList = ({ onSelectPatient, onCreatePatient, refreshKey = 0 }
                       </Badge>
                     )}
                     <Badge variant="secondary" className="text-xs font-mono">
-                      Added {format(new Date(patient.created_at), "MMM yyyy")}
+                      Added {format(new Date(patient.created_at), "dd MMM yyyy, HH:mm")}
                     </Badge>
                   </div>
                 </div>
