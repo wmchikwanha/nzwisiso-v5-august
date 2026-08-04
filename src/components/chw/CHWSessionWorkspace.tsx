@@ -125,6 +125,25 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
       patient_id: session.patient_id,
       description: `Session #${session.session_number} for ${patientName} → ${status}`,
     });
+
+    // Write-through: append FHIR R4 resources for completed / referred sessions.
+    if (status !== "active") {
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("id, patient_identifier, gender, date_of_birth, language_preference")
+        .eq("id", session.patient_id)
+        .single();
+      await persistChwSessionFhir({
+        session: {
+          ...session,
+          status,
+          narrative_text: narrative,
+          ended_at: ended,
+          ...(extra as any),
+        },
+        patient: (patient as any) ?? null,
+      });
+    }
     return true;
   };
 
@@ -141,6 +160,7 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
       onExit();
     }
   };
+
 
   const handleDiscard = async () => {
     if (!session || !user) return;
