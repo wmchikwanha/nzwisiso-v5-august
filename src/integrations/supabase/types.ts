@@ -1401,6 +1401,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_clinician_directory: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+          role: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
