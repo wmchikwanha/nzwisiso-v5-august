@@ -229,6 +229,26 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex items-start justify-between gap-4 rounded-md border p-3">
+            <div className="space-y-1">
+              <Label htmlFor="retain-audio" className="text-sm font-medium">
+                Retain audio for research review
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {consentOk
+                  ? "Off by default. When on, each recorded segment is stored encrypted and can only be played back by the Principal Investigator or Safety Monitor. Every access is audited."
+                  : "Unavailable — no active recording consent on file for this client. Audio is transcribed and discarded."}
+                {retainedCount > 0 && ` ${retainedCount} segment(s) retained this session.`}
+              </p>
+            </div>
+            <Switch
+              id="retain-audio"
+              checked={retainAudio}
+              disabled={!consentOk}
+              onCheckedChange={setRetainAudio}
+            />
+          </div>
+
           <InputZone
             value={narrative}
             onChange={setNarrative}
