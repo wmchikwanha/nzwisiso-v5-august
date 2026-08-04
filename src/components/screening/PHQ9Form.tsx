@@ -8,6 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { scorePHQ9 } from "@/lib/screening/scoringUtils";
+import { persistScreeningFhir } from "@/lib/fhir/persist";
+
 import { Loader2, AlertTriangle } from "lucide-react";
 
 interface PHQ9FormProps {
