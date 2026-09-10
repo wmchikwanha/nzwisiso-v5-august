@@ -126,6 +126,123 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_incidents: {
+        Row: {
+          capa_notes: string | null
+          closed_at: string | null
+          created_at: string
+          description: string
+          id: string
+          incident_type: string
+          linked_ai_output_id: string | null
+          linked_patient_id: string | null
+          reported_by: string | null
+          reporter_role: string | null
+          reviewer_id: string | null
+          severity: string
+          source_function: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capa_notes?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          incident_type: string
+          linked_ai_output_id?: string | null
+          linked_patient_id?: string | null
+          reported_by?: string | null
+          reporter_role?: string | null
+          reviewer_id?: string | null
+          severity?: string
+          source_function?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capa_notes?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          incident_type?: string
+          linked_ai_output_id?: string | null
+          linked_patient_id?: string | null
+          reported_by?: string | null
+          reporter_role?: string | null
+          reviewer_id?: string | null
+          severity?: string
+          source_function?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_inference_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string
+          dosage_blocked: boolean
+          function_name: string
+          id: string
+          injection_detected: boolean
+          injection_patterns: Json
+          input_chars: number
+          input_rejected: boolean
+          latency_ms: number | null
+          model_id: string | null
+          model_version: string | null
+          patient_id: string | null
+          prompt_template_id: string | null
+          retried: boolean
+          schema_valid: boolean | null
+          validation_errors: Json | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          dosage_blocked?: boolean
+          function_name: string
+          id?: string
+          injection_detected?: boolean
+          injection_patterns?: Json
+          input_chars?: number
+          input_rejected?: boolean
+          latency_ms?: number | null
+          model_id?: string | null
+          model_version?: string | null
+          patient_id?: string | null
+          prompt_template_id?: string | null
+          retried?: boolean
+          schema_valid?: boolean | null
+          validation_errors?: Json | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          dosage_blocked?: boolean
+          function_name?: string
+          id?: string
+          injection_detected?: boolean
+          injection_patterns?: Json
+          input_chars?: number
+          input_rejected?: boolean
+          latency_ms?: number | null
+          model_id?: string | null
+          model_version?: string | null
+          patient_id?: string | null
+          prompt_template_id?: string | null
+          retried?: boolean
+          schema_valid?: boolean | null
+          validation_errors?: Json | null
+        }
+        Relationships: []
+      }
       ai_model_cards: {
         Row: {
           bias_assessment: Json
@@ -1515,6 +1632,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_counters: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          request_count: number
+          subject_hash: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          request_count?: number
+          subject_hash: string
+          window_start: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          request_count?: number
+          subject_hash?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      rate_limit_policies: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          is_active: boolean
+          max_requests: number
+          updated_at: string
+          window_seconds: number
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_active?: boolean
+          max_requests?: number
+          updated_at?: string
+          window_seconds?: number
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_active?: boolean
+          max_requests?: number
+          updated_at?: string
+          window_seconds?: number
+        }
+        Relationships: []
       }
       referral_targets: {
         Row: {

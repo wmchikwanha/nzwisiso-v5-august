@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
+import { guardInput, logInference, logAudit, serviceClient as guardClient } from "../_shared/aiGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +85,33 @@ serve(async (req) => {
       ? `Context from current session:\n${context}\n\nQuestion: ${question}`
       : question;
 
+    const guard = guardInput(userContent);
+    const guardDb = guardClient();
+
+    if (guard.rejected) {
+      return new Response(JSON.stringify({ error: "Question is too long. Please shorten it." }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    await logInference(guardDb, {
+      function_name: "ask-ai",
+      model_id: aiConfig.modelId,
+      model_version: aiConfig.modelVersionLabel,
+      prompt_template_id: aiConfig.promptTemplateId,
+      input_chars: guard.originalChars,
+      injection_detected: guard.detected,
+      injection_patterns: guard.patterns,
+    });
+
+    if (guard.detected) {
+      await logAudit(guardDb, {
+        action: "injection_pattern_detected",
+        resource_type: "Session",
+        outcome: "flagged",
+        description: `ask-ai: ${guard.patterns.join(", ")}`,
+      });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -95,7 +123,7 @@ serve(async (req) => {
         stream: true,
         messages: [
           { role: "system", content: aiConfig.systemPrompt },
-          { role: "user", content: asUserContent(userContent) },
+          { role: "user", content: asUserContent(guard.text) },
         ],
       }),
     });

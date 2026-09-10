@@ -52,3 +52,27 @@ Registry tables: `model_versions`, `prompt_templates`, `ai_safety_preambles`,
 Audit vocabulary extended with `model_eval_run`, `model_promoted`,
 `model_retired`, `prompt_updated`, `safety_preamble_updated`, `drift_check_run`,
 `ai_output_overridden`.
+
+## Batch 3 — AI safety hardening and incident reporting (complete)
+
+Tables: `ai_inference_events`, `ai_incidents`, `rate_limit_policies`,
+`rate_limit_counters`.
+
+- `supabase/functions/_shared/aiGuard.ts`: multilingual prompt-injection
+  detection, a 24,000-character input cap (hard reject above 48,000), a dosage
+  blocklist, structured-output validation, uniform public error text, SHA-256
+  hashed rate limiting and inference/audit/incident logging.
+- All clinical text is wrapped in `<user_content>`; the current safety preamble
+  instructs the model to treat that content as data, never as instructions.
+- `suggest-diagnosis` and `generate-treatment-plan` validate the structured
+  result, retry once, then fail safe with
+  "AI suggestion unavailable, clinical review required" and raise an automatic
+  incident. `process-narrative`, `ask-ai`, `transcribe-audio`,
+  `process-document`, `self-assess` and `validate-intake-token` guard and log
+  every invocation.
+- Public endpoints (`self-assess`, `validate-intake-token`) are rate limited
+  per IP/token and return uniform errors that do not disclose token validity.
+- Clinicians can report a problem from the diagnostic and treatment cards;
+  admins and safety monitors triage in Admin → Safety reports with audited
+  status transitions and corrective-action notes.
+- Two further adversarial golden cases added (Shona and Ndebele injection).
