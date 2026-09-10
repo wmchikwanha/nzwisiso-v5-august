@@ -1,6 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AI_LAYER_LABEL, MHGAP_VERSION, RULES_ENGINE_VERSION, scrubDosages } from "../_shared/rulesEngine.ts";
 import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
+import {
+  guardInput,
+  validateStructuredOutput,
+  logInference,
+  logAudit,
+  raiseValidationIncident,
+  serviceClient as guardClient,
+  FAIL_SAFE_MESSAGE,
+} from "../_shared/aiGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -144,7 +153,11 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
       required: ['primary_interventions', 'psychosocial_interventions', 'monitoring_plan', 'referral_criteria']
     };
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const guard = guardInput(clinicalContext);
+    const startedAt = Date.now();
+    const db = guardClient();
+
+    const callModel = (correction?: string) => fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -154,7 +167,8 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
         model: aiConfig.modelId,
         messages: [
           { role: 'system', content: aiConfig.systemPrompt },
-          { role: 'user', content: asUserContent(clinicalContext) },
+          { role: 'user', content: asUserContent(guard.text) },
+          ...(correction ? [{ role: 'user', content: correction }] : []),
         ],
         tools: [
           {
@@ -170,6 +184,8 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
       }),
     });
 
+    const response = await callModel();
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Lovable AI error:', response.status, errorText);
@@ -184,14 +200,73 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
-    const data = await response.json();
-    const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
-    const argsStr = toolCall?.function?.arguments;
-    if (!argsStr) {
-      console.error('No tool call in AI response:', JSON.stringify(data).slice(0, 500));
-      throw new Error('No treatment plan generated — invalid response format');
+    const extractArgs = async (res: Response) => {
+      const d = await res.json();
+      const args = d?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      if (!args) return '';
+      return typeof args === 'string' ? args : JSON.stringify(args);
+    };
+
+    const REQUIRED = ['primary_interventions', 'psychosocial_interventions', 'monitoring_plan', 'referral_criteria'];
+    let outcome = validateStructuredOutput<Record<string, unknown>>(await extractArgs(response), REQUIRED);
+    let retried = false;
+
+    if (!outcome.valid) {
+      // One retry, then fail safe.
+      retried = true;
+      const retryRes = await callModel(
+        `Your previous response was rejected: ${outcome.errors.join('; ')}. Return the complete structured plan with no medication names, doses, strengths or frequencies.`,
+      );
+      outcome = retryRes.ok
+        ? validateStructuredOutput<Record<string, unknown>>(await extractArgs(retryRes), REQUIRED)
+        : outcome;
     }
-    const treatmentPlan = scrubDosages(typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr);
+
+    const dosageBlocked = outcome.errors.some((e) => e.includes('dosage'));
+
+    await logInference(db, {
+      function_name: 'generate-treatment-plan',
+      model_id: aiConfig.modelId,
+      model_version: aiConfig.modelVersionLabel,
+      prompt_template_id: aiConfig.promptTemplateId,
+      input_chars: guard.originalChars,
+      injection_detected: guard.detected,
+      injection_patterns: guard.patterns,
+      schema_valid: outcome.valid,
+      validation_errors: outcome.valid ? null : outcome.errors,
+      retried,
+      dosage_blocked: dosageBlocked,
+      latency_ms: Date.now() - startedAt,
+    });
+
+    if (guard.detected) {
+      await logAudit(db, {
+        action: 'injection_pattern_detected',
+        resource_type: 'CarePlan',
+        outcome: 'flagged',
+        description: `generate-treatment-plan: ${guard.patterns.join(', ')}`,
+      });
+    }
+
+    if (!outcome.valid) {
+      await logAudit(db, {
+        action: dosageBlocked ? 'dosage_pattern_blocked' : 'output_validation_failed',
+        resource_type: 'CarePlan',
+        outcome: 'failure',
+        description: `generate-treatment-plan: ${outcome.errors.join('; ')}`,
+      });
+      await raiseValidationIncident(db, {
+        function_name: 'generate-treatment-plan',
+        errors: outcome.errors,
+        dosage: dosageBlocked,
+      });
+      return new Response(
+        JSON.stringify({ error: FAIL_SAFE_MESSAGE, validation_failed: true }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const treatmentPlan = scrubDosages(outcome.data as Record<string, unknown>);
 
     console.log('Treatment plan generated successfully');
 
