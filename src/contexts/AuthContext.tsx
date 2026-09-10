@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   const navigate = useNavigate();
 
