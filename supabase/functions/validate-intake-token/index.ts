@@ -17,11 +17,24 @@ serve(async (req) => {
 
   try {
     const { action, token, ...payload } = await req.json();
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
     // ── VALIDATE TOKEN ──────────────────────────────────────────
     if (action === "validate") {
+      const limit = await checkRateLimit(supabase, "validate-intake-token", token ?? ip);
+      if (!limit.allowed) {
+        await logAudit(supabase, {
+          action: "rate_limit_exceeded",
+          resource_type: "RateLimit",
+          outcome: "failure",
+          description: "validate-intake-token",
+        });
+        return json(UNIFORM_PUBLIC_ERROR, 429);
+      }
+
+      // Uniform response for malformed, unknown and expired-lookup failures.
       if (!token || typeof token !== "string" || token.length < 32) {
-        return json({ error: "Invalid token" }, 400);
+        return json(UNIFORM_PUBLIC_ERROR, 404);
       }
 
       const { data: session, error } = await supabase
@@ -30,7 +43,7 @@ serve(async (req) => {
         .eq("token", token)
         .single();
 
-      if (error || !session) return json({ error: "Session not found" }, 404);
+      if (error || !session) return json(UNIFORM_PUBLIC_ERROR, 404);
       if (session.status === "expired" || new Date(session.expires_at) < new Date()) {
         await supabase.from("patient_intake_sessions").update({ status: "expired" }).eq("id", session.id);
         return json({ error: "This link has expired" }, 410);
