@@ -36,7 +36,7 @@ export const RoleGuard = ({
     if (blockRoles && blockRoles.includes(userRole as string)) {
       navigate(redirectTo ?? "/chw");
     }
-  }, [user, userRole, loading, allowRoles, blockRoles, navigate, redirectTo]);
+  }, [user, userRole, loading, rolesLoading, allowRoles, blockRoles, navigate, redirectTo]);
 
   return <>{children}</>;
 };
