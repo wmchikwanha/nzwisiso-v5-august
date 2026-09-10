@@ -17,10 +17,11 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
-import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity, Lock, Building2 } from "lucide-react";
+import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity, Lock, Building2, AlertTriangle } from "lucide-react";
 import { getRoleLabel } from "@/lib/permissions";
 import { AudioVault } from "@/components/admin/AudioVault";
 import { FacilityManager } from "@/components/admin/FacilityManager";
+import { PilotPanel } from "@/components/admin/PilotPanel";
 
 
 
@@ -213,7 +214,12 @@ const AdminDashboard = () => {
             <TabsTrigger value="facilities"><Building2 className="h-4 w-4 mr-2" />Facilities</TabsTrigger>
             <TabsTrigger value="activity"><Activity className="h-4 w-4 mr-2" />Activity</TabsTrigger>
             <TabsTrigger value="audio"><Lock className="h-4 w-4 mr-2" />Audio</TabsTrigger>
+            <TabsTrigger value="pilot"><AlertTriangle className="h-4 w-4 mr-2" />Pilot</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="pilot">
+            <PilotPanel />
+          </TabsContent>
 
           <TabsContent value="facilities">
             <FacilityManager />

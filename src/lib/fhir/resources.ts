@@ -6,6 +6,9 @@
 //
 // No PII: Patient carries a clinician-defined identifier only.
 
+import { PILOT_WATERMARK } from "@/lib/copy";
+import { isPilotModeSync } from "@/hooks/usePilotConfig";
+
 const ISO = () => new Date().toISOString();
 
 export type FhirResource = Record<string, any>;
@@ -304,11 +307,24 @@ export function auditEventResource(a: {
 }
 
 export function bundleOf(resources: FhirResource[], id = `bundle-${Date.now()}`): FhirResource {
+  const pilot = isPilotModeSync();
   return {
     resourceType: "Bundle",
     id,
     type: "collection",
     timestamp: ISO(),
+    meta: pilot
+      ? {
+          lastUpdated: ISO(),
+          tag: [
+            {
+              system: "http://nzwisiso.app/CodeSystem/data-classification",
+              code: "pilot-synthetic",
+              display: PILOT_WATERMARK,
+            },
+          ],
+        }
+      : { lastUpdated: ISO() },
     entry: resources.map((r) => ({
       fullUrl: `urn:uuid:${r.resourceType}-${r.id}`,
       resource: r,
