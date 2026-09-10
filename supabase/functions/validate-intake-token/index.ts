@@ -123,7 +123,18 @@ serve(async (req) => {
       const { session_id, narrative_text } = payload;
       if (!session_id) return json({ error: "Missing session_id" }, 400);
 
-      const { error } = await supabase.from("patient_intake_sessions").update({ narrative_text }).eq("id", session_id);
+      const g = guardInput(String(narrative_text ?? ""));
+      if (g.rejected) return json(UNIFORM_PUBLIC_ERROR, 413);
+      if (g.detected) {
+        await logAudit(supabase, {
+          action: "injection_pattern_detected",
+          resource_type: "Session",
+          resource_id: session_id,
+          outcome: "flagged",
+          description: `patient intake narrative: ${g.patterns.join(", ")}`,
+        });
+      }
+      const { error } = await supabase.from("patient_intake_sessions").update({ narrative_text: g.text }).eq("id", session_id);
       if (error) return json({ error: error.message }, 500);
       return json({ success: true });
     }
