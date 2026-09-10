@@ -142,7 +142,7 @@ serve(async (req) => {
         actor_role: "admin",
         action: act,
         outcome,
-        resource_type: "pilot_config",
+        resource_type: "PilotConfig",
         description,
         metadata,
         source: "pilot-admin",
