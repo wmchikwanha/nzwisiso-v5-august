@@ -115,6 +115,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error fetching user role:", error);
       setUserRoles([]);
       setUserRole(null);
+    } finally {
+      setRolesLoading(false);
     }
   };
 
