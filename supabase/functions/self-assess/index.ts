@@ -212,6 +212,20 @@ serve(async (req) => {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
   try {
+    // Per-IP / per-token rate limit on this public endpoint.
+    if (action === "start" || action === "submit") {
+      const limit = await checkRateLimit(supabase, "self-assess", token ?? ip);
+      if (!limit.allowed) {
+        await logAudit(supabase, {
+          action: "rate_limit_exceeded",
+          resource_type: "RateLimit",
+          outcome: "failure",
+          description: `self-assess ${action}`,
+        });
+        return ok(UNIFORM_PUBLIC_ERROR, 429);
+      }
+    }
+
     // ── start ─────────────────────────────────────────
     if (action === "start") {
       const language = (payload.language_code ?? "en") as string;
@@ -224,13 +238,14 @@ serve(async (req) => {
       return ok({ session: data });
     }
 
-    if (!token) return bad("session_token required");
+    // Uniform response for missing or unknown tokens — no enumeration signal.
+    if (!token) return ok(UNIFORM_PUBLIC_ERROR, 404);
     const { data: session, error: sErr } = await supabase
       .from("self_assessment_sessions")
       .select("*")
       .eq("session_token", token)
       .single();
-    if (sErr || !session) return bad("Invalid session", 404);
+    if (sErr || !session) return ok(UNIFORM_PUBLIC_ERROR, 404);
 
     // ── save_consents ─────────────────────────────────
     if (action === "save_consents") {
