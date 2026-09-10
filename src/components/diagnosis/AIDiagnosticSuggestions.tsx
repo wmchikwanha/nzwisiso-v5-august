@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DiagnosticCode } from '@/lib/diagnosis/diagnosticCodes';
+import { AI_LAYER_LABEL, categoriseFromScreening, selectMHGAPModule } from '@/lib/clinical/rulesEngine';
 
 const deterministicModule = (screeningData: Record<string, any>) => {
   // Deterministic layer: the mhGAP module is chosen from scores, never by the AI.
