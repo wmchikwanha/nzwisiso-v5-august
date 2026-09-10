@@ -23,11 +23,11 @@ export const RoleGuard = ({
   blockRoles,
   redirectTo,
 }: RoleGuardProps) => {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, loading, rolesLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || rolesLoading) return;
     if (!user) return; // unauth handled by individual pages
     if (allowRoles && !allowRoles.includes(userRole as string)) {
       navigate(redirectTo ?? "/");
