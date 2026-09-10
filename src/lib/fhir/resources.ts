@@ -6,6 +6,9 @@
 //
 // No PII: Patient carries a clinician-defined identifier only.
 
+import { PILOT_WATERMARK } from "@/lib/copy";
+import { isPilotModeSync } from "@/hooks/usePilotConfig";
+
 const ISO = () => new Date().toISOString();
 
 export type FhirResource = Record<string, any>;
