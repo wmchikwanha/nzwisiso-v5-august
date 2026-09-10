@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { scorePHQ9 } from "@/lib/screening/scoringUtils";
+import { getRulesVersionId } from "@/lib/clinical/rulesVersion";
 import { persistScreeningFhir } from "@/lib/fhir/persist";
 
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -69,6 +70,7 @@ export const PHQ9Form = ({ patientId, onComplete }: PHQ9FormProps) => {
       if (!user) throw new Error("Not authenticated");
 
       const { data: saved, error } = await supabase.from("screening_assessments").insert({
+        rules_version_id: await getRulesVersionId(),
         patient_id: patientId,
         user_id: user.id,
         tool_type: "PHQ9",

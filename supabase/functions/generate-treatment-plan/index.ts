@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { AI_LAYER_LABEL, MHGAP_VERSION, RULES_ENGINE_VERSION, scrubDosages } from "../_shared/rulesEngine.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,20 +12,33 @@ serve(async (req) => {
   }
 
   try {
-    const { screeningData, mseFindings, patientContext } = await req.json();
+    const { screeningData, mseFindings, patientContext, mhgapModule, extractedEntities, crisisPathway } = await req.json();
+
+    if (!mhgapModule?.moduleCode) {
+      return new Response(
+        JSON.stringify({
+          error: 'A deterministic mhGAP module must be selected before a treatment plan can be generated.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const clinicalContext = buildClinicalContext(screeningData, mseFindings, patientContext);
+    const clinicalContext = buildClinicalContext(screeningData, mseFindings, patientContext, mhgapModule, extractedEntities, crisisPathway);
 
     const systemPrompt = `You are a psychiatric clinical decision support system providing evidence-based treatment recommendations for Southern African mental health contexts. You support clinicians in Zimbabwe, South Africa, Botswana, and Zambia.
 
 CRITICAL CONSTRAINTS:
+- The mhGAP module and its in-scope interventions are PRE-SELECTED by a deterministic rules engine.
+  You must stay within that module. Do NOT introduce interventions from another module and do NOT
+  re-derive, re-band or dispute any supplied screening score.
 - "AI suggests, clinician decides" — all recommendations require professional clinical review
-- Never suggest specific medication dosages — only medication classes and general principles
+- Never suggest specific medication dosages, frequencies or titration schedules under ANY
+  circumstance — only medication classes and general principles
 - Never make a definitive treatment decision — support clinical reasoning only
 - Flag high-risk presentations for immediate escalation
 - All outputs are prefixed: "AI-generated suggestion requiring clinical review"
@@ -173,12 +187,18 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
       console.error('No tool call in AI response:', JSON.stringify(data).slice(0, 500));
       throw new Error('No treatment plan generated — invalid response format');
     }
-    const treatmentPlan = typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr;
+    const treatmentPlan = scrubDosages(typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr);
 
     console.log('Treatment plan generated successfully');
 
     return new Response(
-      JSON.stringify({ treatmentPlan }),
+      JSON.stringify({
+        treatmentPlan,
+        mhgapModule,
+        mhgapVersion: MHGAP_VERSION,
+        rulesEngineVersion: RULES_ENGINE_VERSION,
+        aiLayerLabel: AI_LAYER_LABEL,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -191,8 +211,34 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
   }
 });
 
-function buildClinicalContext(screeningData: any[], mseFindings: any, patientContext: any): string {
-  let context = 'CLINICAL ASSESSMENT SUMMARY — please generate evidence-based treatment recommendations:\n\n';
+function buildClinicalContext(
+  screeningData: any[],
+  mseFindings: any,
+  patientContext: any,
+  mhgapModule?: any,
+  extractedEntities?: any,
+  crisisPathway?: any,
+): string {
+  let context = 'CLINICAL ASSESSMENT SUMMARY — please generate evidence-based treatment recommendations.\n';
+  context += 'All scores and the mhGAP module below were produced by a deterministic rules engine. Do not recalculate them.\n\n';
+
+  if (mhgapModule) {
+    context += `## Pre-selected mhGAP Module (${mhgapModule.mhgapVersion || MHGAP_VERSION})\n`;
+    context += `- ${mhgapModule.moduleCode} — ${mhgapModule.moduleName}\n`;
+    if (Array.isArray(mhgapModule.interventions)) {
+      context += `- Interventions in scope: ${mhgapModule.interventions.join('; ')}\n`;
+    }
+    context += '\n';
+  }
+
+  if (crisisPathway && crisisPathway.pathwayType && crisisPathway.pathwayType !== 'none') {
+    context += `## Crisis pathway (deterministic)\n- ${crisisPathway.pathwayType} — urgency: ${crisisPathway.urgency}\n\n`;
+  }
+
+  if (extractedEntities) {
+    context += '## Extracted Clinical Entities (NLP layer output — not scored)\n';
+    context += `${JSON.stringify(extractedEntities, null, 1)}\n\n`;
+  }
 
   if (patientContext) {
     context += '## Patient Context\n';

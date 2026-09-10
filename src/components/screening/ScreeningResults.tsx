@@ -30,7 +30,9 @@ const TOOL_NAMES = {
   PHQ9: "PHQ-9",
   PCL5: "PCL-5",
   MMSE: "MMSE",
-  PSQ: "PSQ"
+  PSQ: "PSQ",
+  PRIMER5: "PRIME-R-5",
+  SSQ14: "SSQ-14"
 };
 
 const getSeverityColor = (severity: string) => {
@@ -137,7 +139,10 @@ export const ScreeningResults = ({ patientId }: ScreeningResultsProps) => {
       return assessment.responses[8] >= 1; // Suicidality question
     }
     if (assessment.tool_type === "PSQ") {
-      return assessment.total_score > 1; // Multiple positive screens
+      return assessment.total_score >= 3; // Deterministic crisis threshold
+    }
+    if (assessment.tool_type === "SSQ14" && Array.isArray(assessment.responses)) {
+      return assessment.responses[1] >= 1; // Item 2 — thoughts of ending life
     }
     return false;
   };
@@ -148,7 +153,9 @@ export const ScreeningResults = ({ patientId }: ScreeningResultsProps) => {
       PHQ9: 27,
       PCL5: 80,
       MMSE: 30,
-      PSQ: 5
+      PSQ: 5,
+      PRIMER5: 25,
+      SSQ14: 14
     };
 
     exportScreeningToPDF({

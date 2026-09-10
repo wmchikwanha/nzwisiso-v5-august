@@ -41,6 +41,7 @@ import { PCL5Form } from "@/components/screening/PCL5Form";
 import { MMSEForm } from "@/components/screening/MMSEForm";
 import { PSQForm } from "@/components/screening/PSQForm";
 import { PRIMER5Form } from "@/components/screening/PRIMER5Form";
+import { SSQ14Form } from "@/components/screening/SSQ14Form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScreeningContext } from "@/components/ScreeningContext";
 import { TreatmentPlanSuggestions } from "@/components/TreatmentPlanSuggestions";
@@ -630,6 +631,19 @@ const Index = () => {
                             toast({
                               title: "Assessment Saved",
                               description: "PRIME-R-5 assessment has been saved successfully."
+                            });
+                          }}
+                        />
+                      )}
+
+                      {selectedScreeningTool === "SSQ14" && (
+                        <SSQ14Form
+                          patientId={screeningPatientId}
+                          onComplete={() => {
+                            setSelectedScreeningTool(null);
+                            toast({
+                              title: "Assessment Saved",
+                              description: "SSQ-14 assessment has been saved successfully."
                             });
                           }}
                         />

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { scorePCL5 } from "@/lib/screening/scoringUtils";
+import { getRulesVersionId } from "@/lib/clinical/rulesVersion";
 import { Loader2 } from "lucide-react";
 
 interface PCL5FormProps {
@@ -77,6 +78,7 @@ export const PCL5Form = ({ patientId, onComplete }: PCL5FormProps) => {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase.from("screening_assessments").insert({
+        rules_version_id: await getRulesVersionId(),
         patient_id: patientId,
         user_id: user.id,
         tool_type: "PCL5",

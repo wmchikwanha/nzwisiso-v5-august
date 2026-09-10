@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { scoreMMSE } from "@/lib/screening/scoringUtils";
+import { getRulesVersionId } from "@/lib/clinical/rulesVersion";
 import { Loader2 } from "lucide-react";
 
 interface MMSEFormProps {
@@ -64,6 +65,7 @@ export const MMSEForm = ({ patientId, onComplete }: MMSEFormProps) => {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase.from("screening_assessments").insert({
+        rules_version_id: await getRulesVersionId(),
         patient_id: patientId,
         user_id: user.id,
         tool_type: "MMSE",

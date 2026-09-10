@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import {
+  AI_LAYER_LABEL,
+  determineCrisisPathway,
+  RULES_ENGINE_VERSION,
+} from "../_shared/rulesEngine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
 
 // =============================================================================
 // SYSTEM PROMPT
@@ -14,10 +20,12 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are an expert Psychiatric Clinical Scribe for the Nzwisiso system, supporting frontline mental health clinicians in Southern Africa (Zimbabwe, South Africa, Botswana, Zambia).
 
 # Primary Directive
-You are a documentation and decision support aid — you do NOT diagnose.
+You are an ENTITY EXTRACTION and cultural-decoding layer. You do NOT diagnose, you do NOT score,
+and you do NOT recommend treatment.
+All screening scores, severity bands, crisis pathways and mhGAP treatment modules are calculated
+by a separate deterministic rules engine. NEVER output a numeric score, a severity band, a
+diagnostic code, a diagnosis name, a medication or a dosage.
 You organise, translate, culturally decode, and flag. The clinician reviews and decides everything.
-All output is prefixed in spirit as: "AI-generated suggestion requiring clinical review."
-Never prescribe or suggest specific medication dosages.
 Flag uncertainty explicitly — do not confabulate.
 
 # Task
@@ -267,8 +275,23 @@ Keep each MSE field to 2-4 sentences maximum. Be clinically precise but concise.
   "speech": "2-4 sentences on speech and thought stream",
   "mood": "2-4 sentences on mood and affect",
   "perception": "2-4 sentences on perceptual disturbances, or 'No perceptual disturbances elicited.' if absent",
-  "risk": "2-4 sentences on risk assessment findings",
-  "clinical_impressions": "2-4 sentences: provisional syndrome, key cultural factors, recommended next steps"
+  "risk": "2-4 sentences describing risk statements the person actually made — no risk scoring",
+  "clinical_impressions": "2-4 sentences describing the observed clinical picture and key cultural factors. NO diagnosis, NO codes, NO treatment.",
+  "extractedEntities": {
+    "presentingComplaints": ["string"],
+    "symptomDuration": "string",
+    "symptomSeverity": "mild | moderate | severe (descriptive report of what the person said, not a scored band)",
+    "culturalIdioms": [{ "term": "string", "language": "string", "interpretedMeaning": "string" }],
+    "riskStatements": [{ "type": "suicidal | homicidal | self-harm | neglect | abuse | gbv", "verbatim": "string" }],
+    "moodDescriptors": ["string"],
+    "sleepDisturbance": true,
+    "appetiteChange": true,
+    "psychomotorChanges": "retardation | agitation | none",
+    "psychoticFeatures": { "hallucinations": false, "delusions": false, "disorganisation": false },
+    "substanceUse": [{ "substance": "string", "frequency": "string" }],
+    "functionalImpairment": "string",
+    "socialContext": "string"
+  }
 }`;
 
 serve(async (req) => {
@@ -404,11 +427,35 @@ serve(async (req) => {
         result.cultural_idioms_found = result.cultural_idioms_found ?? [];
         result.culturalNotes       = result.culturalNotes       ?? [];
         result.clinical_impressions = result.clinical_impressions ?? "";
-        result.hasRedAlert         = result.hasRedAlert         ?? false;
-        result.alertMessage        = result.alertMessage        ?? "";
-        result.risk_level          = result.risk_level          ?? (result.hasRedAlert ? "high" : "none");
+        result.extractedEntities   = result.extractedEntities   ?? {};
 
-        console.log("MSE generated successfully, tokens:", tokenCount);
+        // ---------------------------------------------------------------
+        // DETERMINISTIC LAYER — the crisis pathway is decided here, from
+        // the extracted risk statements, NOT by the language model.
+        // ---------------------------------------------------------------
+        const riskStatements = Array.isArray(result.extractedEntities?.riskStatements)
+          ? result.extractedEntities.riskStatements
+          : [];
+        const narrativeFlags: string[] = riskStatements
+          .map((r: { type?: string; verbatim?: string }) => `${r?.type ?? ""} ${r?.verbatim ?? ""}`.trim())
+          .filter(Boolean);
+
+        const pathway = determineCrisisPathway({ narrativeFlags });
+        result.crisisPathway = pathway;
+        result.hasRedAlert = pathway.pathwayType !== "none" || result.hasRedAlert === true;
+        result.alertMessage = pathway.pathwayType !== "none"
+          ? `Deterministic crisis pathway: ${pathway.pathwayType} (${pathway.urgency}).`
+          : (result.alertMessage ?? "");
+        result.risk_level = pathway.urgency === "immediate"
+          ? "high"
+          : pathway.urgency === "urgent"
+            ? "moderate"
+            : (result.risk_level ?? "none");
+
+        result.ai_layer_label = AI_LAYER_LABEL;
+        result.rules_engine_version = RULES_ENGINE_VERSION;
+
+        console.log("Entities extracted; pathway:", pathway.pathwayType, "tokens:", tokenCount);
       } catch (parseError) {
         console.error("JSON parsing failed:", parseError);
         const hasRisk = RISK_KEYWORDS.some(kw => fullText.toLowerCase().includes(kw));
