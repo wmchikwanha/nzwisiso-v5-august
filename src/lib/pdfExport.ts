@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { applyPilotWatermark } from "@/lib/pdfWatermark";
 
 interface PatientData {
   patient_identifier?: string;

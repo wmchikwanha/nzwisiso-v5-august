@@ -13,6 +13,7 @@ import FacilityPortal from "./pages/FacilityPortal";
 import CHWDashboard from "./pages/CHWDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import { RoleGuard } from "./components/RoleGuard";
+import { PilotBanner } from "./components/PilotBanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <PilotBanner />
           <Routes>
             <Route
               path="/"
