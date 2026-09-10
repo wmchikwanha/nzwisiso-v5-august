@@ -5,7 +5,11 @@
  * structured model output with `validateStructuredOutput`, and records the call
  * in `ai_inference_events`.
  */
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+/** Loose client type: functions in this repo pin different supabase-js versions. */
+// deno-lint-ignore no-explicit-any
+type AnyClient = any;
 
 export const MAX_INPUT_CHARS = 24_000;
 
@@ -118,7 +122,7 @@ export function validateStructuredOutput<T = Record<string, unknown>>(
 export const FAIL_SAFE_MESSAGE =
   "AI suggestion unavailable, clinical review required.";
 
-export function serviceClient(): SupabaseClient {
+export function serviceClient(): AnyClient {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -145,7 +149,7 @@ export interface InferenceLogInput {
   latency_ms?: number | null;
 }
 
-export async function logInference(db: SupabaseClient, input: InferenceLogInput): Promise<string | null> {
+export async function logInference(db: AnyClient, input: InferenceLogInput): Promise<string | null> {
   try {
     const { data } = await db
       .from("ai_inference_events")
@@ -164,7 +168,7 @@ export async function logInference(db: SupabaseClient, input: InferenceLogInput)
 }
 
 export async function logAudit(
-  db: SupabaseClient,
+  db: AnyClient,
   event: {
     actor_id?: string | null;
     actor_role?: string | null;
@@ -192,7 +196,7 @@ export async function logAudit(
 
 /** Auto-create an incident when an AI output fails validation. */
 export async function raiseValidationIncident(
-  db: SupabaseClient,
+  db: AnyClient,
   opts: { function_name: string; errors: string[]; actor_id?: string | null; patient_id?: string | null; dosage?: boolean },
 ) {
   try {
@@ -220,7 +224,7 @@ export async function sha256Hex(text: string): Promise<string> {
  * caller is allowed. Fails open on infrastructure errors so care is never blocked.
  */
 export async function checkRateLimit(
-  db: SupabaseClient,
+  db: AnyClient,
   endpoint: string,
   subject: string | null,
 ): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
