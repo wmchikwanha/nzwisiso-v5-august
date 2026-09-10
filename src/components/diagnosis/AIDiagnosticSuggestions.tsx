@@ -166,6 +166,7 @@ export function AIDiagnosticSuggestions({
             <Sparkles className="h-4 w-4 text-primary" />
             AI Diagnostic Suggestions
           </CardTitle>
+          <p className="text-xs text-muted-foreground">{AI_LAYER_LABEL}</p>
           <Badge variant="outline" className="text-xs">
             {framework}
           </Badge>
