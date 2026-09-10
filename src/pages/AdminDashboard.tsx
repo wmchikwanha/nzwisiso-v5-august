@@ -17,12 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
-import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity, Lock, Building2, AlertTriangle, Cpu } from "lucide-react";
+import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Activity, Lock, Building2, AlertTriangle, Cpu, Flag } from "lucide-react";
 import { getRoleLabel } from "@/lib/permissions";
 import { AudioVault } from "@/components/admin/AudioVault";
 import { FacilityManager } from "@/components/admin/FacilityManager";
 import { PilotPanel } from "@/components/admin/PilotPanel";
 import { ModelRegistry } from "@/components/admin/ModelRegistry";
+import { IncidentQueue } from "@/components/admin/IncidentQueue";
 
 
 
@@ -218,7 +219,12 @@ const AdminDashboard = () => {
             <TabsTrigger value="audio"><Lock className="h-4 w-4 mr-2" />Audio</TabsTrigger>
             <TabsTrigger value="pilot"><AlertTriangle className="h-4 w-4 mr-2" />Pilot</TabsTrigger>
             <TabsTrigger value="models"><Cpu className="h-4 w-4 mr-2" />AI models</TabsTrigger>
+            <TabsTrigger value="incidents"><Flag className="h-4 w-4 mr-2" />Safety reports</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="incidents">
+            <IncidentQueue />
+          </TabsContent>
 
           <TabsContent value="models">
             <ModelRegistry />

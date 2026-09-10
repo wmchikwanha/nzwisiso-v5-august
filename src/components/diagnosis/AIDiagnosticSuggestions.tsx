@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sparkles, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReportAIIncidentDialog } from '@/components/ai/ReportAIIncidentDialog';
 import { calibrateConfidence, confidenceBand, logAIConfidence } from '@/lib/ai/confidence';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -177,9 +178,12 @@ export function AIDiagnosticSuggestions({
             AI Diagnostic Suggestions
           </CardTitle>
           <p className="text-xs text-muted-foreground">{AI_LAYER_LABEL}</p>
-          <Badge variant="outline" className="text-xs">
-            {framework}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className="text-xs">
+              {framework}
+            </Badge>
+            <ReportAIIncidentDialog sourceFunction="suggest-diagnosis" />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
