@@ -165,7 +165,11 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
       required: ['primaryDiagnosis', 'differentialDiagnoses', 'culturalFormulation', 'clinicalAlerts']
     };
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const guard = guardInput(clinicalSummary);
+    const startedAt = Date.now();
+    const db = guardClient();
+
+    const callModel = (correction?: string) => fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -175,7 +179,8 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
         model: aiConfig.modelId,
         messages: [
           { role: 'system', content: aiConfig.systemPrompt },
-          { role: 'user', content: asUserContent(clinicalSummary) },
+          { role: 'user', content: asUserContent(guard.text) },
+          ...(correction ? [{ role: 'user', content: correction }] : []),
         ],
         tools: [
           {
@@ -190,6 +195,8 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
         tool_choice: { type: 'function', function: { name: 'suggest_diagnoses' } },
       }),
     });
+
+    const aiResponse = await callModel();
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
