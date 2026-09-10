@@ -119,7 +119,7 @@ export const SSQ14Form = ({ patientId, onComplete }: SSQ14FormProps) => {
           </Alert>
         )}
 
-        {isComplete && live.distressFlag && !suicidalityEndorsed && (
+        {isComplete && live.totalScore >= 8 && !suicidalityEndorsed && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
