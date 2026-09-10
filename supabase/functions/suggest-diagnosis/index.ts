@@ -1,6 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AI_LAYER_LABEL, RULES_ENGINE_VERSION, scrubDosages } from "../_shared/rulesEngine.ts";
 import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
+import {
+  guardInput,
+  validateStructuredOutput,
+  logInference,
+  logAudit,
+  raiseValidationIncident,
+  serviceClient as guardClient,
+  FAIL_SAFE_MESSAGE,
+} from "../_shared/aiGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
