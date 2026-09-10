@@ -258,6 +258,7 @@ export const TreatmentPlanSuggestions = ({
           <CardDescription>
             Generate evidence-based treatment recommendations from WHO mhGAP and clinical guidelines
           </CardDescription>
+          <p className="text-xs text-muted-foreground mt-1">{AI_LAYER_LABEL}</p>
         </CardHeader>
         <CardContent>
           <Button onClick={generateTreatmentPlan} className="w-full">
