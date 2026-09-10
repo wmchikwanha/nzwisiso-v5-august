@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AI_LAYER_LABEL, MHGAP_VERSION, RULES_ENGINE_VERSION, scrubDosages } from "../_shared/rulesEngine.ts";
+import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,6 +65,9 @@ CULTURAL CONTEXT:
 - amafufunyana (Zulu/Xhosa): spirit possession — ICD-11 6B63, culturally appropriate explanation
 
 STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacological considerations (class only, no dosages), monitoring plan, and referral criteria.`;
+
+    // Model, safety preamble and prompt all come from the governance registry.
+    const aiConfig = await resolveAIConfig("generate-treatment-plan", systemPrompt);
 
     const toolSchema = {
       type: 'object',
@@ -147,10 +151,10 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.modelId,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: clinicalContext },
+          { role: 'system', content: aiConfig.systemPrompt },
+          { role: 'user', content: asUserContent(clinicalContext) },
         ],
         tools: [
           {
@@ -198,11 +202,22 @@ STRUCTURE: Provide primary interventions, psychosocial interventions, pharmacolo
         mhgapVersion: MHGAP_VERSION,
         rulesEngineVersion: RULES_ENGINE_VERSION,
         aiLayerLabel: AI_LAYER_LABEL,
+        modelId: aiConfig.modelId,
+        modelVersion: aiConfig.modelVersionLabel,
+        promptTemplateId: aiConfig.promptTemplateId,
+        promptTemplateVersion: aiConfig.promptTemplateVersion,
+        provenance: provenanceOf(aiConfig).provenance,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    if (error instanceof NoActiveModelError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.error('Error generating treatment plan:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to generate treatment plan' }),
