@@ -10,6 +10,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   userRole: string | null;
   userRoles: string[];
+  /** True until the signed-in user's roles have been read from the database. */
+  rolesLoading: boolean;
 }
 
 /** Highest-privilege role wins when a user holds several. */
@@ -37,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   userRole: null,
   userRoles: [],
+  rolesLoading: true,
 });
 
 
@@ -54,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -66,11 +70,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Fetch user role when session changes
         if (session?.user) {
+          setRolesLoading(true);
           setTimeout(() => {
             fetchUserRole(session.user.id);
           }, 0);
         } else {
           setUserRole(null);
+          setUserRoles([]);
+          setRolesLoading(false);
         }
       }
     );
@@ -81,9 +88,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        setRolesLoading(true);
         fetchUserRole(session.user.id);
+      } else {
+        setRolesLoading(false);
       }
-      
+
       setLoading(false);
     });
 
@@ -105,6 +115,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error fetching user role:", error);
       setUserRoles([]);
       setUserRole(null);
+    } finally {
+      setRolesLoading(false);
     }
   };
 
@@ -119,7 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, userRole, userRoles }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut, userRole, userRoles, rolesLoading }}>
 
       {children}
     </AuthContext.Provider>
