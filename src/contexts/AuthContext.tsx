@@ -10,6 +10,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   userRole: string | null;
   userRoles: string[];
+  /** True until the signed-in user's roles have been read from the database. */
+  rolesLoading: boolean;
 }
 
 /** Highest-privilege role wins when a user holds several. */
