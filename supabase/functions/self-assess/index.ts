@@ -307,9 +307,20 @@ serve(async (req) => {
 
     // ── save_narrative ────────────────────────────────
     if (action === "save_narrative") {
+      const narrativeGuard = guardInput(String(payload.narrative_text ?? ""));
+      if (narrativeGuard.rejected) return ok(UNIFORM_PUBLIC_ERROR, 413);
+      if (narrativeGuard.detected) {
+        await logAudit(supabase, {
+          action: "injection_pattern_detected",
+          resource_type: "Session",
+          resource_id: session.id,
+          outcome: "flagged",
+          description: `self-assess save_narrative: ${narrativeGuard.patterns.join(", ")}`,
+        });
+      }
       const { error } = await supabase
         .from("self_assessment_sessions")
-        .update({ narrative_text: String(payload.narrative_text ?? "") })
+        .update({ narrative_text: narrativeGuard.text })
         .eq("id", session.id);
       if (error) throw error;
       return ok({ ok: true });
