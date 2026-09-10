@@ -215,18 +215,74 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
       );
     }
 
-    const aiData = await aiResponse.json();
-    const toolCall = aiData?.choices?.[0]?.message?.tool_calls?.[0];
-    const argsStr = toolCall?.function?.arguments;
-    if (!argsStr) {
-      console.error('No tool call in AI response:', JSON.stringify(aiData).slice(0, 500));
-      throw new Error('Invalid AI response format — missing tool call');
+    const extractArgs = async (res: Response) => {
+      const data = await res.json();
+      const args = data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      if (!args) return '';
+      return typeof args === 'string' ? args : JSON.stringify(args);
+    };
+
+    const REQUIRED = ['primaryDiagnosis', 'differentialDiagnoses', 'culturalFormulation'];
+    let outcome = validateStructuredOutput<Record<string, unknown>>(await extractArgs(aiResponse), REQUIRED);
+    let retried = false;
+
+    if (!outcome.valid) {
+      // One retry, then fail safe — never surface a partial diagnostic result.
+      retried = true;
+      const retryRes = await callModel(
+        `Your previous response was rejected: ${outcome.errors.join('; ')}. Return the complete structured result with no medication dosages.`,
+      );
+      outcome = retryRes.ok
+        ? validateStructuredOutput<Record<string, unknown>>(await extractArgs(retryRes), REQUIRED)
+        : outcome;
     }
 
-    const suggestions = typeof argsStr === 'string' ? JSON.parse(argsStr) : argsStr;
-    if (!suggestions.primaryDiagnosis || !suggestions.differentialDiagnoses) {
-      throw new Error('Invalid AI response format — missing required diagnostic fields');
+    const dosageBlocked = outcome.errors.some((e) => e.includes('dosage'));
+
+    await logInference(db, {
+      function_name: 'suggest-diagnosis',
+      model_id: aiConfig.modelId,
+      model_version: aiConfig.modelVersionLabel,
+      prompt_template_id: aiConfig.promptTemplateId,
+      input_chars: guard.originalChars,
+      injection_detected: guard.detected,
+      injection_patterns: guard.patterns,
+      schema_valid: outcome.valid,
+      validation_errors: outcome.valid ? null : outcome.errors,
+      retried,
+      dosage_blocked: dosageBlocked,
+      latency_ms: Date.now() - startedAt,
+    });
+
+    if (guard.detected) {
+      await logAudit(db, {
+        action: 'injection_pattern_detected',
+        resource_type: 'DiagnosticReport',
+        outcome: 'flagged',
+        description: `suggest-diagnosis: ${guard.patterns.join(', ')}`,
+      });
     }
+
+    if (!outcome.valid) {
+      await logAudit(db, {
+        action: dosageBlocked ? 'dosage_pattern_blocked' : 'output_validation_failed',
+        resource_type: 'DiagnosticReport',
+        outcome: 'failure',
+        description: `suggest-diagnosis: ${outcome.errors.join('; ')}`,
+      });
+      await raiseValidationIncident(db, {
+        function_name: 'suggest-diagnosis',
+        errors: outcome.errors,
+        dosage: dosageBlocked,
+      });
+      return new Response(
+        JSON.stringify({ error: FAIL_SAFE_MESSAGE, validation_failed: true }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const suggestions = outcome.data as Record<string, any>;
+
 
     const result = {
       ...scrubDosages(suggestions),
