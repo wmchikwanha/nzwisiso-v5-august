@@ -21,6 +21,7 @@ import { Loader2, ShieldCheck, UserPlus, ArrowLeft, Trash2, Ban, RotateCcw, Acti
 import { getRoleLabel } from "@/lib/permissions";
 import { AudioVault } from "@/components/admin/AudioVault";
 import { FacilityManager } from "@/components/admin/FacilityManager";
+import { PilotPanel } from "@/components/admin/PilotPanel";
 
 
 
