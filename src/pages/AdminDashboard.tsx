@@ -65,10 +65,11 @@ const AdminDashboard = () => {
       navigate("/auth");
       return;
     }
+    if (rolesLoading) return;
     if (userRole !== "admin") {
       navigate("/");
     }
-  }, [session, userRole, loading, navigate]);
+  }, [session, userRole, loading, rolesLoading, navigate]);
 
   const call = async (action: string, payload?: any) => {
     const { data, error } = await supabase.functions.invoke("admin-team", {
