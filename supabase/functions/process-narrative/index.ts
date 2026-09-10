@@ -4,6 +4,7 @@ import {
   determineCrisisPathway,
   RULES_ENGINE_VERSION,
 } from "../_shared/rulesEngine.ts";
+import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -317,6 +318,18 @@ serve(async (req) => {
     );
   }
 
+  // Model, safety preamble and prompt all come from the governance registry.
+  let aiConfig;
+  try {
+    aiConfig = await resolveAIConfig("process-narrative", SYSTEM_PROMPT);
+  } catch (e) {
+    const noModel = e instanceof NoActiveModelError;
+    return new Response(
+      JSON.stringify({ error: noModel ? e.message : "AI configuration unavailable" }),
+      { status: noModel ? 503 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   if (!narrative) {
     return new Response(
       JSON.stringify({ error: "No narrative provided" }),
@@ -333,12 +346,12 @@ serve(async (req) => {
       "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: aiConfig.modelId,
       stream: true,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: narrative },
+        { role: "system", content: aiConfig.systemPrompt },
+        { role: "user", content: asUserContent(narrative) },
       ],
     }),
   });
@@ -454,6 +467,7 @@ serve(async (req) => {
 
         result.ai_layer_label = AI_LAYER_LABEL;
         result.rules_engine_version = RULES_ENGINE_VERSION;
+        result.provenance = provenanceOf(aiConfig);
 
         console.log("Entities extracted; pathway:", pathway.pathwayType, "tokens:", tokenCount);
       } catch (parseError) {

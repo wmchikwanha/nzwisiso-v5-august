@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AI_LAYER_LABEL, RULES_ENGINE_VERSION, scrubDosages } from "../_shared/rulesEngine.ts";
+import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -126,6 +127,9 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
 
     const clinicalSummary = buildClinicalSummary(screeningData, mseFindings, patientContext, extractedEntities, crisisPathway, mhgapModule);
 
+    // Model, safety preamble and prompt all come from the governance registry.
+    const aiConfig = await resolveAIConfig("suggest-diagnosis", systemPrompt);
+
     const toolSchema = {
       type: 'object',
       properties: {
@@ -168,10 +172,10 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.modelId,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: clinicalSummary },
+          { role: 'system', content: aiConfig.systemPrompt },
+          { role: 'user', content: asUserContent(clinicalSummary) },
         ],
         tools: [
           {
@@ -223,6 +227,11 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
       mhgapModule: mhgapModule ?? null,
       rulesEngineVersion: RULES_ENGINE_VERSION,
       aiLayerLabel: AI_LAYER_LABEL,
+      modelId: aiConfig.modelId,
+      modelVersion: aiConfig.modelVersionLabel,
+      promptTemplateId: aiConfig.promptTemplateId,
+      promptTemplateVersion: aiConfig.promptTemplateVersion,
+      provenance: provenanceOf(aiConfig).provenance,
       generatedAt: new Date().toISOString(),
       disclaimer: 'AI-generated suggestion requiring clinical review. The final diagnosis is the responsibility of the treating clinician.',
     };
@@ -251,6 +260,12 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
     });
 
   } catch (error) {
+    if (error instanceof NoActiveModelError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.error('Error in suggest-diagnosis:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),

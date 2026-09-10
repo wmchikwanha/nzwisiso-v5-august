@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sparkles, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { calibrateConfidence, confidenceBand, logAIConfidence } from '@/lib/ai/confidence';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -124,6 +125,15 @@ export function AIDiagnosticSuggestions({
       if (!data) throw new Error('No result received from server');
 
       setSuggestions(data);
+
+      // Calibrated confidence + provenance recorded for drift monitoring.
+      void logAIConfidence({
+        functionName: 'suggest-diagnosis',
+        rawConfidence: typeof data?.primaryDiagnosis?.confidence === 'number'
+          ? data.primaryDiagnosis.confidence / 100
+          : null,
+        promptTemplateId: data?.promptTemplateId ?? null,
+      });
       toast({
         title: 'Suggestions Generated',
         description: 'AI diagnostic suggestions are ready for review.',
@@ -249,7 +259,9 @@ export function AIDiagnosticSuggestions({
                     Primary Diagnosis Suggestion
                   </p>
                   <Badge className={getConfidenceColor(suggestions.primaryDiagnosis.confidence)}>
-                    {suggestions.primaryDiagnosis.confidence}% confidence
+                    {Math.round((calibrateConfidence(suggestions.primaryDiagnosis.confidence / 100) ?? 0) * 100)}% calibrated confidence
+                    {' · '}
+                    {confidenceBand(calibrateConfidence(suggestions.primaryDiagnosis.confidence / 100)).label}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 mb-2">

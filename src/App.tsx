@@ -12,6 +12,7 @@ import SelfAssess from "./pages/SelfAssess";
 import FacilityPortal from "./pages/FacilityPortal";
 import CHWDashboard from "./pages/CHWDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import ModelInfo from "./pages/ModelInfo";
 import { RoleGuard } from "./components/RoleGuard";
 import { PilotBanner } from "./components/PilotBanner";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,7 @@ const App = () => (
             />
             <Route path="/auth" element={<Auth />} />
             <Route path="/self-assess" element={<SelfAssess />} />
+            <Route path="/model-info" element={<ModelInfo />} />
             <Route path="/intake/:token" element={<PatientIntake />} />
             <Route
               path="/facility"

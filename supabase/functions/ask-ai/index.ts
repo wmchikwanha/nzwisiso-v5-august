@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +66,8 @@ serve(async (req) => {
 
   try {
     const { question, context } = await req.json();
+
+    const aiConfig = await resolveAIConfig("ask-ai", SYSTEM_PROMPT);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -88,11 +91,11 @@ serve(async (req) => {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: aiConfig.modelId,
         stream: true,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
+          { role: "system", content: aiConfig.systemPrompt },
+          { role: "user", content: asUserContent(userContent) },
         ],
       }),
     });
@@ -121,6 +124,12 @@ serve(async (req) => {
       },
     });
   } catch (error) {
+    if (error instanceof NoActiveModelError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.error("Error in ask-ai function:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
