@@ -14,6 +14,12 @@ export const Footer = ({ portfolioUrl }: FooterProps) => {
         >
           Take a confidential self-assessment →
         </a>
+        <a
+          href="/model-info"
+          className="text-xs font-medium text-muted-foreground hover:underline"
+        >
+          How the AI works
+        </a>
         <div className="text-left space-y-0.5">
           <div className="flex items-center justify-start gap-1.5">
             <span className="text-muted-foreground/50 text-[10px]">©</span>
