@@ -9,6 +9,18 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DiagnosticCode } from '@/lib/diagnosis/diagnosticCodes';
+import { AI_LAYER_LABEL, categoriseFromScreening, selectMHGAPModule } from '@/lib/clinical/rulesEngine';
+
+const deterministicModule = (screeningData: Record<string, any>) => {
+  // Deterministic layer: the mhGAP module is chosen from scores, never by the AI.
+  const entries = Object.entries(screeningData ?? {});
+  const [toolType, value]: [string, any] = (entries[0] as [string, any]) ?? ["", {}];
+  const severity = value?.severity ?? value?.severity_level ?? value?.riskLevel ?? "";
+  const crisis =
+    Number(value?.responses?.[8] ?? 0) >= 1 ||
+    (String(toolType).toUpperCase() === "PSQ" && Number(value?.score ?? 0) >= 3);
+  return selectMHGAPModule(categoriseFromScreening(toolType, severity, crisis), severity);
+};
 
 interface AISuggestion {
   code: string;
@@ -68,7 +80,15 @@ export function AIDiagnosticSuggestions({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ screeningData, mseFindings, patientContext, framework }),
+        body: JSON.stringify({
+          screeningData,
+          mseFindings,
+          patientContext,
+          framework,
+          extractedEntities: (mseFindings as any)?.extractedEntities,
+          crisisPathway: (mseFindings as any)?.crisisPathway,
+          mhgapModule: deterministicModule(screeningData),
+        }),
       });
 
       if (!response.ok || !response.headers.get('Content-Type')?.includes('text/event-stream')) {
@@ -146,6 +166,7 @@ export function AIDiagnosticSuggestions({
             <Sparkles className="h-4 w-4 text-primary" />
             AI Diagnostic Suggestions
           </CardTitle>
+          <p className="text-xs text-muted-foreground">{AI_LAYER_LABEL}</p>
           <Badge variant="outline" className="text-xs">
             {framework}
           </Badge>

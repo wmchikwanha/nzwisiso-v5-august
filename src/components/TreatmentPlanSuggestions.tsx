@@ -9,6 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles, AlertTriangle, Clock, Users, Pill, Brain, BookOpen, Copy, Check, FileDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportTreatmentPlanToPDF } from "@/lib/treatmentPlanPdfExport";
+import {
+  AI_LAYER_LABEL,
+  categoriseFromScreening,
+  determineCrisisPathway,
+  selectMHGAPModule,
+} from "@/lib/clinical/rulesEngine";
 
 interface TreatmentPlanSuggestionsProps {
   screeningData: any[];
@@ -87,11 +93,28 @@ export const TreatmentPlanSuggestions = ({
   const generateTreatmentPlan = async () => {
     setIsGenerating(true);
     try {
+      // Deterministic layer: pick the mhGAP module and crisis pathway BEFORE the AI call.
+      const primary = (screeningData ?? [])[0];
+      const crisisPathway = determineCrisisPathway({
+        phq9Item9: (screeningData ?? []).find((s: any) => s?.tool_type === 'PHQ9')?.responses?.[8],
+        psqTotal: (screeningData ?? []).find((s: any) => s?.tool_type === 'PSQ')?.total_score,
+        pcl5Total: (screeningData ?? []).find((s: any) => s?.tool_type === 'PCL5')?.total_score,
+      });
+      const category = categoriseFromScreening(
+        primary?.tool_type ?? '',
+        primary?.severity_level ?? '',
+        crisisPathway.pathwayType !== 'none',
+      );
+      const mhgapModule = selectMHGAPModule(category, primary?.severity_level);
+
       const { data, error } = await supabase.functions.invoke('generate-treatment-plan', {
         body: {
           screeningData,
           mseFindings,
-          patientContext
+          patientContext,
+          mhgapModule,
+          crisisPathway,
+          extractedEntities: mseFindings?.extractedEntities,
         }
       });
 
@@ -235,6 +258,7 @@ export const TreatmentPlanSuggestions = ({
           <CardDescription>
             Generate evidence-based treatment recommendations from WHO mhGAP and clinical guidelines
           </CardDescription>
+          <p className="text-xs text-muted-foreground mt-1">{AI_LAYER_LABEL}</p>
         </CardHeader>
         <CardContent>
           <Button onClick={generateTreatmentPlan} className="w-full">

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { scoreGAD7 } from "@/lib/screening/scoringUtils";
+import { getRulesVersionId } from "@/lib/clinical/rulesVersion";
 import { Loader2 } from "lucide-react";
 
 interface GAD7FormProps {
@@ -63,6 +64,7 @@ export const GAD7Form = ({ patientId, onComplete }: GAD7FormProps) => {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase.from("screening_assessments").insert({
+        rules_version_id: await getRulesVersionId(),
         patient_id: patientId,
         user_id: user.id,
         tool_type: "GAD7",

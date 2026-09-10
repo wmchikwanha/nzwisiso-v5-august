@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { determineCrisisPathway } from "@/lib/clinical/rulesEngine";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -193,7 +194,11 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
     return <div className="text-center py-12 text-muted-foreground">Loading session…</div>;
   }
 
-  const item9Flag = session.phq9_item9_flag;
+  // Deterministic crisis pathway — no AI involved in this decision.
+  const crisisPathway = determineCrisisPathway({
+    phq9Item9: session.phq9_item9_flag ? 1 : 0,
+  });
+  const item9Flag = crisisPathway.blocksSessionClosure;
 
   return (
     <div className="space-y-6">
@@ -212,8 +217,13 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <strong>Safety alert:</strong> The client endorsed PHQ-9 Item 9 (thoughts of self-harm).
-            An <strong>upward referral is required</strong> before closing this session. Stay with
-            the client, follow the safety script, and contact an emergency facility now.
+            Deterministic crisis pathway: <strong>{crisisPathway.pathwayType}</strong> ({crisisPathway.urgency}).
+            An <strong>upward referral is required</strong> before closing this session.
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              {crisisPathway.requiredActions.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
           </AlertDescription>
         </Alert>
       )}
@@ -349,7 +359,9 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
                   .single();
                 if (latest) {
                   const responses = (latest as any).responses as number[] | null;
-                  const item9 = Array.isArray(responses) ? (responses[8] || 0) >= 1 : false;
+                  const item9 = Array.isArray(responses)
+                    ? determineCrisisPathway({ phq9Item9: responses[8] || 0 }).blocksSessionClosure
+                    : false;
                   await supabase
                     .from("chw_sessions")
                     .update({

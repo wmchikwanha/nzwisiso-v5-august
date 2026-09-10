@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { AI_LAYER_LABEL, RULES_ENGINE_VERSION, scrubDosages } from "../_shared/rulesEngine.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,31 @@ interface ScreeningData {
   MMSE?: { score: number; interpretation: string };
   PSQ?: { score: number; positiveScreens: string[] };
   PRIMER5?: { score: number; riskLevel: string };
+  SSQ14?: { score: number; severity: string };
+}
+
+/** Entities extracted by the NLP layer — never scored by it. */
+interface ExtractedEntities {
+  presentingComplaints?: string[];
+  symptomDuration?: string;
+  culturalIdioms?: { term: string; language: string; interpretedMeaning: string }[];
+  riskStatements?: { type: string; verbatim: string }[];
+  moodDescriptors?: string[];
+  sleepDisturbance?: boolean;
+  appetiteChange?: boolean;
+  psychomotorChanges?: string;
+  psychoticFeatures?: { hallucinations?: boolean; delusions?: boolean; disorganisation?: boolean };
+  substanceUse?: { substance: string; frequency: string }[];
+  functionalImpairment?: string;
+  socialContext?: string;
+}
+
+/** mhGAP module pre-selected by the deterministic rules engine. */
+interface MHGAPModule {
+  moduleCode: string;
+  moduleName: string;
+  interventions: string[];
+  mhgapVersion: string;
 }
 
 interface MSEFindings {
@@ -39,6 +65,9 @@ interface DiagnosticRequest {
     presentingComplaint?: string;
   };
   framework: 'ICD-11' | 'DSM-5';
+  extractedEntities?: ExtractedEntities;
+  crisisPathway?: { pathwayType: string; urgency: string };
+  mhgapModule?: MHGAPModule;
 }
 
 serve(async (req) => {
@@ -52,7 +81,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { screeningData, mseFindings, patientContext, framework }: DiagnosticRequest = await req.json();
+    const { screeningData, mseFindings, patientContext, framework, extractedEntities, crisisPathway, mhgapModule }: DiagnosticRequest = await req.json();
 
     console.log('Generating diagnostic suggestions for framework:', framework);
 
@@ -72,6 +101,10 @@ You use ${framework} diagnostic criteria exclusively.
 ${frameworkInstructions}
 
 CRITICAL CONSTRAINTS:
+- You receive PRE-CALCULATED screening scores and a PRE-SELECTED mhGAP module produced by a
+  deterministic rules engine. NEVER recompute, re-band, contradict or second-guess a score.
+- You receive PRE-EXTRACTED clinical entities, not raw narrative. Reason only from what is given.
+- Your diagnostic suggestions must be consistent with the supplied mhGAP module category.
 - "AI suggests, clinician decides" — all suggestions require professional clinical review
 - Never provide a definitive diagnosis — support clinical reasoning only
 - Never suggest specific medication dosages
@@ -91,7 +124,7 @@ CULTURAL CONTEXT — Southern African idioms of distress to recognise:
 
 All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clinical review."`;
 
-    const clinicalSummary = buildClinicalSummary(screeningData, mseFindings, patientContext);
+    const clinicalSummary = buildClinicalSummary(screeningData, mseFindings, patientContext, extractedEntities, crisisPathway, mhgapModule);
 
     const toolSchema = {
       type: 'object',
@@ -185,8 +218,11 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
     }
 
     const result = {
-      ...suggestions,
+      ...scrubDosages(suggestions),
       framework,
+      mhgapModule: mhgapModule ?? null,
+      rulesEngineVersion: RULES_ENGINE_VERSION,
+      aiLayerLabel: AI_LAYER_LABEL,
       generatedAt: new Date().toISOString(),
       disclaimer: 'AI-generated suggestion requiring clinical review. The final diagnosis is the responsibility of the treating clinician.',
     };
@@ -226,9 +262,23 @@ All AI outputs are suggestions prefixed: "AI-generated suggestion requiring clin
 function buildClinicalSummary(
   screeningData: ScreeningData,
   mseFindings: MSEFindings,
-  patientContext?: DiagnosticRequest['patientContext']
+  patientContext?: DiagnosticRequest['patientContext'],
+  extractedEntities?: ExtractedEntities,
+  crisisPathway?: { pathwayType: string; urgency: string },
+  mhgapModule?: MHGAPModule,
 ): string {
-  let summary = 'Please analyse the following clinical data and provide diagnostic suggestions:\n\n';
+  let summary = 'Please analyse the following STRUCTURED clinical data and provide diagnostic suggestions.\n';
+  summary += 'All scores below were calculated deterministically. Do not recalculate them.\n\n';
+
+  if (mhgapModule) {
+    summary += `## mhGAP Module (pre-selected by the deterministic rules engine — ${mhgapModule.mhgapVersion})\n`;
+    summary += `- ${mhgapModule.moduleCode} — ${mhgapModule.moduleName}\n`;
+    summary += `- Interventions in scope: ${mhgapModule.interventions.join('; ')}\n\n`;
+  }
+
+  if (crisisPathway && crisisPathway.pathwayType !== 'none') {
+    summary += `## Crisis pathway (deterministic)\n- ${crisisPathway.pathwayType} — urgency: ${crisisPathway.urgency}\n\n`;
+  }
 
   if (patientContext) {
     summary += '## Patient Context\n';
@@ -245,7 +295,8 @@ function buildClinicalSummary(
   if (screeningData.PCL5) summary += `- PCL-5 (PTSD): Score ${screeningData.PCL5.score}/80 — ${screeningData.PCL5.severity}\n`;
   if (screeningData.MMSE) summary += `- MMSE (Cognitive): Score ${screeningData.MMSE.score}/30 — ${screeningData.MMSE.interpretation}\n`;
   if (screeningData.PSQ) summary += `- PSQ (Psychosis): Score ${screeningData.PSQ.score}/5 — Positive screens: ${screeningData.PSQ.positiveScreens.join(', ') || 'None'}\n`;
-  if (screeningData.PRIMER5) summary += `- PRIME-R-5 (Prodromal Psychosis): Score ${screeningData.PRIMER5.score}/30 — ${screeningData.PRIMER5.riskLevel}\n`;
+  if (screeningData.PRIMER5) summary += `- PRIME-R-5 (Prodromal Psychosis): Score ${screeningData.PRIMER5.score}/25 — ${screeningData.PRIMER5.riskLevel}\n`;
+  if (screeningData.SSQ14) summary += `- SSQ-14 (Shona Symptom Questionnaire): Score ${screeningData.SSQ14.score}/14 — ${screeningData.SSQ14.severity}\n`;
 
   summary += '\n## Mental State Examination Findings\n';
   if (mseFindings.appearance) summary += `- Appearance: ${mseFindings.appearance}\n`;
@@ -261,7 +312,24 @@ function buildClinicalSummary(
   if (mseFindings.judgment) summary += `- Judgment: ${mseFindings.judgment}\n`;
   if (mseFindings.risk_assessment) summary += `- Risk Assessment: ${mseFindings.risk_assessment}\n`;
 
-  summary += '\nProvide structured diagnostic suggestions based on this clinical information.';
+  if (extractedEntities) {
+    summary += '\n## Extracted Clinical Entities (NLP layer output — not scored)\n';
+    const e = extractedEntities;
+    if (e.presentingComplaints?.length) summary += `- Presenting complaints: ${e.presentingComplaints.join('; ')}\n`;
+    if (e.symptomDuration) summary += `- Symptom duration: ${e.symptomDuration}\n`;
+    if (e.moodDescriptors?.length) summary += `- Mood descriptors: ${e.moodDescriptors.join('; ')}\n`;
+    if (e.sleepDisturbance !== undefined) summary += `- Sleep disturbance: ${e.sleepDisturbance}\n`;
+    if (e.appetiteChange !== undefined) summary += `- Appetite change: ${e.appetiteChange}\n`;
+    if (e.psychomotorChanges) summary += `- Psychomotor changes: ${e.psychomotorChanges}\n`;
+    if (e.psychoticFeatures) summary += `- Psychotic features: ${JSON.stringify(e.psychoticFeatures)}\n`;
+    if (e.substanceUse?.length) summary += `- Substance use: ${e.substanceUse.map(s2 => `${s2.substance} (${s2.frequency})`).join('; ')}\n`;
+    if (e.culturalIdioms?.length) summary += `- Cultural idioms: ${e.culturalIdioms.map(i => `${i.term} [${i.language}] = ${i.interpretedMeaning}`).join('; ')}\n`;
+    if (e.riskStatements?.length) summary += `- Risk statements: ${e.riskStatements.map(r => `${r.type}: "${r.verbatim}"`).join('; ')}\n`;
+    if (e.functionalImpairment) summary += `- Functional impairment: ${e.functionalImpairment}\n`;
+    if (e.socialContext) summary += `- Social context: ${e.socialContext}\n`;
+  }
+
+  summary += '\nProvide structured diagnostic suggestions based on this structured clinical information.';
 
   return summary;
 }

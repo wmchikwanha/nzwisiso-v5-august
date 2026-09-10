@@ -50,6 +50,14 @@ export const SCREENING_INSTRUMENTS = {
     loincScore:   null,
     maxScore:     25,
   },
+  SSQ14: {
+    id:           'SSQ-14',
+    name:         'Shona Symptom Questionnaire (14-item)',
+    loincPanel:   null,        // Locally validated instrument — no LOINC code
+    loincScore:   null,
+    maxScore:     14,
+  },
+
 } as const;
 
 export type ScreeningInstrumentKey = keyof typeof SCREENING_INSTRUMENTS;
@@ -85,181 +93,206 @@ export function toFHIRScoreObservation(
   };
 }
 
+// =============================================================================
+// PRESENTATION WRAPPERS
+// All arithmetic and banding is delegated to the deterministic clinical rules
+// engine (src/lib/clinical/rulesEngine.ts). These wrappers only add the
+// human-readable labels and interpretation copy used by the UI and PDFs.
+// No AI is involved in any scoring path.
+// =============================================================================
+import * as RE from "@/lib/clinical/rulesEngine";
+
+export { RULES_ENGINE_VERSION, AI_LAYER_LABEL } from "@/lib/clinical/rulesEngine";
+
 export interface ScoringResult {
   totalScore: number;
   severityLevel: string;
   interpretation: string;
   alerts?: string[];
+  /** Version of the deterministic rules engine that produced this result. */
+  rulesVersion?: string;
 }
 
+const withVersion = (r: Omit<ScoringResult, "rulesVersion">): ScoringResult => ({
+  ...r,
+  rulesVersion: RE.RULES_ENGINE_VERSION,
+});
+
+const GAD7_COPY: Record<RE.GAD7Severity, [string, string]> = {
+  minimal: ["Minimal", "Minimal anxiety. Continue monitoring."],
+  mild: ["Mild", "Mild anxiety. Watchful waiting recommended. Consider lifestyle interventions."],
+  moderate: ["Moderate", "Moderate anxiety. Treatment plan recommended. Consider psychotherapy or pharmacotherapy."],
+  severe: ["Severe", "Severe anxiety. Active treatment warranted. Recommend psychiatric evaluation and intervention."],
+};
+
 export const scoreGAD7 = (responses: number[]): ScoringResult => {
-  const totalScore = responses.reduce((sum, val) => sum + val, 0);
-  
-  let severityLevel = '';
-  let interpretation = '';
-  
-  if (totalScore <= 4) {
-    severityLevel = 'Minimal';
-    interpretation = 'Minimal anxiety. Continue monitoring.';
-  } else if (totalScore <= 9) {
-    severityLevel = 'Mild';
-    interpretation = 'Mild anxiety. Watchful waiting recommended. Consider lifestyle interventions.';
-  } else if (totalScore <= 14) {
-    severityLevel = 'Moderate';
-    interpretation = 'Moderate anxiety. Treatment plan recommended. Consider psychotherapy or pharmacotherapy.';
-  } else {
-    severityLevel = 'Severe';
-    interpretation = 'Severe anxiety. Active treatment warranted. Recommend psychiatric evaluation and intervention.';
-  }
-  
-  return { totalScore, severityLevel, interpretation };
+  const { total, severity } = RE.scoreGAD7(responses);
+  const [severityLevel, interpretation] = GAD7_COPY[severity];
+  return withVersion({ totalScore: total, severityLevel, interpretation });
+};
+
+const PHQ9_COPY: Record<RE.PHQ9Severity, [string, string]> = {
+  minimal: ["Minimal", "Minimal depression. No treatment required, continue monitoring."],
+  mild: ["Mild", "Mild depression. Watchful waiting. Consider psychotherapy if symptoms persist."],
+  moderate: ["Moderate", "Moderate depression. Treatment plan recommended. Psychotherapy and/or antidepressant medication."],
+  "moderately-severe": ["Moderately Severe", "Moderately severe depression. Active treatment required. Psychotherapy and antidepressant medication recommended."],
+  severe: ["Severe", "Severe depression. Immediate intervention required. Consider intensive treatment options and close monitoring."],
 };
 
 export const scorePHQ9 = (responses: number[]): ScoringResult => {
-  const totalScore = responses.reduce((sum, val) => sum + val, 0);
+  const result = RE.scorePHQ9(responses);
+  const [severityLevel, interpretation] = PHQ9_COPY[result.severity];
   const alerts: string[] = [];
-  
-  // Check for suicidality (question 9)
-  if (responses[8] >= 1) {
-    alerts.push('SUICIDALITY ALERT: Patient endorsed thoughts of self-harm or suicide. Immediate safety assessment required.');
+  if (result.crisisTriggered) {
+    alerts.push(
+      "SUICIDALITY ALERT: Patient endorsed thoughts of self-harm or suicide. Immediate safety assessment required.",
+    );
   }
-  
-  let severityLevel = '';
-  let interpretation = '';
-  
-  if (totalScore <= 4) {
-    severityLevel = 'Minimal';
-    interpretation = 'Minimal depression. No treatment required, continue monitoring.';
-  } else if (totalScore <= 9) {
-    severityLevel = 'Mild';
-    interpretation = 'Mild depression. Watchful waiting. Consider psychotherapy if symptoms persist.';
-  } else if (totalScore <= 14) {
-    severityLevel = 'Moderate';
-    interpretation = 'Moderate depression. Treatment plan recommended. Psychotherapy and/or antidepressant medication.';
-  } else if (totalScore <= 19) {
-    severityLevel = 'Moderately Severe';
-    interpretation = 'Moderately severe depression. Active treatment required. Psychotherapy and antidepressant medication recommended.';
-  } else {
-    severityLevel = 'Severe';
-    interpretation = 'Severe depression. Immediate intervention required. Consider intensive treatment options and close monitoring.';
-  }
-  
-  return { totalScore, severityLevel, interpretation, alerts: alerts.length > 0 ? alerts : undefined };
+  return withVersion({
+    totalScore: result.total,
+    severityLevel,
+    interpretation,
+    alerts: alerts.length ? alerts : undefined,
+  });
 };
 
 export const scorePCL5 = (responses: number[]): ScoringResult => {
-  const totalScore = responses.reduce((sum, val) => sum + val, 0);
+  const { total, provisionalPTSD, meetsClusterCriteria } = RE.scorePCL5(responses);
   const alerts: string[] = [];
-  
-  // Check DSM-5 cluster criteria
-  const clusterB = responses.slice(0, 5).filter(r => r >= 2).length >= 1; // Items 1-5: ≥1 scored ≥2
-  const clusterC = responses.slice(5, 7).filter(r => r >= 2).length >= 1; // Items 6-7: ≥1 scored ≥2
-  const clusterD = responses.slice(7, 14).filter(r => r >= 2).length >= 2; // Items 8-14: ≥2 scored ≥2
-  const clusterE = responses.slice(14, 20).filter(r => r >= 2).length >= 2; // Items 15-20: ≥2 scored ≥2
-  
-  const meetsDSMCriteria = clusterB && clusterC && clusterD && clusterE;
-  
-  let severityLevel = '';
-  let interpretation = '';
-  
-  if (totalScore >= 31 && meetsDSMCriteria) {
-    severityLevel = 'Provisional PTSD Diagnosis';
-    interpretation = 'Total score ≥31 AND meets DSM-5 symptom cluster criteria. Provisional PTSD diagnosis. Comprehensive psychiatric evaluation recommended.';
-    alerts.push('Patient meets provisional criteria for PTSD diagnosis.');
-  } else if (totalScore >= 31) {
-    severityLevel = 'High Symptoms';
-    interpretation = 'High PTSD symptom severity but does not meet all DSM-5 cluster criteria. Further assessment recommended.';
-  } else if (totalScore >= 21) {
-    severityLevel = 'Moderate';
-    interpretation = 'Moderate PTSD symptoms. Consider trauma-focused psychotherapy.';
+
+  let severityLevel: string;
+  let interpretation: string;
+
+  if (provisionalPTSD && meetsClusterCriteria) {
+    severityLevel = "Provisional PTSD Diagnosis";
+    interpretation =
+      "Total score ≥33 AND meets DSM-5 symptom cluster criteria. Provisional PTSD diagnosis. Comprehensive psychiatric evaluation recommended.";
+    alerts.push("Patient meets provisional criteria for PTSD diagnosis.");
+  } else if (provisionalPTSD) {
+    severityLevel = "High Symptoms";
+    interpretation =
+      "High PTSD symptom severity (≥33) but does not meet all DSM-5 cluster criteria. Further assessment recommended.";
+  } else if (total >= 21) {
+    severityLevel = "Moderate";
+    interpretation = "Moderate PTSD symptoms. Consider trauma-focused psychotherapy.";
   } else {
-    severityLevel = 'Low';
-    interpretation = 'Low PTSD symptom severity. Continue monitoring if trauma exposure present.';
+    severityLevel = "Low";
+    interpretation = "Low PTSD symptom severity. Continue monitoring if trauma exposure present.";
   }
-  
-  return { totalScore, severityLevel, interpretation, alerts: alerts.length > 0 ? alerts : undefined };
+
+  return withVersion({
+    totalScore: total,
+    severityLevel,
+    interpretation,
+    alerts: alerts.length ? alerts : undefined,
+  });
 };
 
+const MMSE_COPY: Record<RE.MMSEImpairment, [string, string]> = {
+  none: ["Normal", "No cognitive impairment detected. Cognitive functioning within normal limits."],
+  mild: ["Mild Impairment", "Mild cognitive impairment. Further neuropsychological assessment recommended. Consider reversible causes."],
+  moderate: ["Moderate Impairment", "Moderate cognitive impairment. Neurological evaluation recommended."],
+  severe: ["Severe Impairment", "Severe cognitive impairment. Comprehensive neurological evaluation required. Consider dementia workup."],
+};
+
+/** MMSE is proprietary — retained for historic records only, deactivated in the battery. */
 export const scoreMMSE = (responses: number[]): ScoringResult => {
-  const totalScore = responses.reduce((sum, val) => sum + val, 0);
-  
-  let severityLevel = '';
-  let interpretation = '';
-  
-  if (totalScore >= 24) {
-    severityLevel = 'Normal';
-    interpretation = 'No cognitive impairment detected. Cognitive functioning within normal limits.';
-  } else if (totalScore >= 18) {
-    severityLevel = 'Mild Impairment';
-    interpretation = 'Mild cognitive impairment. Further neuropsychological assessment recommended. Consider reversible causes.';
-  } else {
-    severityLevel = 'Severe Impairment';
-    interpretation = 'Severe cognitive impairment. Comprehensive neurological evaluation required. Consider dementia workup.';
+  const { total, impairment } = RE.scoreMMSE(responses);
+  const [severityLevel, interpretation] = MMSE_COPY[impairment];
+  return withVersion({ totalScore: total, severityLevel, interpretation });
+};
+
+const SSQ14_COPY: Record<RE.SSQ14Severity, [string, string]> = {
+  none: ["Below Threshold", "Below the SSQ-14 threshold for common mental disorder. Watchful waiting and psychoeducation."],
+  mild: ["Mild Distress", "Mild distress below the validated cut-point (8). Psychoeducation, review in 2–4 weeks."],
+  moderate: ["Moderate Distress", "At or above the validated cut-point (≥8) for common mental disorder. Problem-solving therapy indicated; consider referral."],
+  severe: ["Severe Distress", "High distress burden (≥11). Structured psychological intervention and clinician review indicated."],
+};
+
+export const scoreSSQ14 = (responses: number[]): ScoringResult => {
+  const { total, severity, distressFlag } = RE.scoreSSQ14(responses);
+  const [severityLevel, interpretation] = SSQ14_COPY[severity];
+  const alerts: string[] = [];
+  if (distressFlag) {
+    alerts.push("SSQ-14 score ≥8 — screens positive for common mental disorder. Clinical review indicated.");
   }
-  
-  return { totalScore, severityLevel, interpretation };
+  if (responses[1] >= 1) {
+    alerts.push("SUICIDALITY ALERT: Item 2 endorsed (thoughts of ending life). Immediate safety assessment required.");
+  }
+  return withVersion({
+    totalScore: total,
+    severityLevel,
+    interpretation,
+    alerts: alerts.length ? alerts : undefined,
+  });
 };
 
 export const scorePSQ = (responses: { question: string; endorsed: boolean }[]): ScoringResult => {
-  const positiveScreens = responses.filter(r => r.endorsed).length;
+  const { total, crisisTriggered } = RE.scorePSQ(responses.map((r) => (r.endorsed ? 1 : 0)));
   const alerts: string[] = [];
-  
-  let severityLevel = '';
-  let interpretation = '';
-  
-  if (positiveScreens === 0) {
-    severityLevel = 'Negative Screen';
-    interpretation = 'No psychotic symptoms endorsed. Negative screen for psychosis.';
-  } else if (positiveScreens === 1) {
-    severityLevel = 'Positive Screen - Single Item';
-    interpretation = 'Single positive response. Consider further assessment for psychotic symptoms.';
-    alerts.push('Positive screen for psychotic symptoms. Clinical interview recommended.');
+
+  let severityLevel: string;
+  let interpretation: string;
+
+  if (total === 0) {
+    severityLevel = "Negative Screen";
+    interpretation = "No psychotic symptoms endorsed. Negative screen for psychosis.";
+  } else if (total === 1) {
+    severityLevel = "Positive Screen - Single Item";
+    interpretation = "Single positive response. Consider further assessment for psychotic symptoms.";
+    alerts.push("Positive screen for psychotic symptoms. Clinical interview recommended.");
   } else {
-    severityLevel = 'Positive Screen - Multiple Items';
-    interpretation = 'Multiple positive responses. Urgent psychiatric evaluation for psychosis required.';
-    alerts.push('URGENT: Multiple psychotic symptoms endorsed. Immediate psychiatric assessment required.');
+    severityLevel = "Positive Screen - Multiple Items";
+    interpretation = "Multiple positive responses. Urgent psychiatric evaluation for psychosis required.";
+    alerts.push("URGENT: Multiple psychotic symptoms endorsed. Immediate psychiatric assessment required.");
   }
-  
-  return { 
-    totalScore: positiveScreens, 
-    severityLevel, 
-    interpretation, 
-    alerts: alerts.length > 0 ? alerts : undefined 
-  };
+
+  if (crisisTriggered) {
+    alerts.push("CRISIS PATHWAY: PSQ total ≥3 — psychotic-agitation pathway triggered deterministically.");
+  }
+
+  return withVersion({
+    totalScore: total,
+    severityLevel,
+    interpretation,
+    alerts: alerts.length ? alerts : undefined,
+  });
 };
 
 export const scorePRIMER5 = (responses: number[]): ScoringResult => {
-  const totalScore = responses.reduce((sum, val) => sum + val, 0);
+  const { total, psychosisRisk, flaggedItems } = RE.scorePRIMER5(responses);
   const alerts: string[] = [];
-  
-  // Check for individual items scoring ≥4 (clinically significant)
-  const highRiskItems = responses
-    .map((score, index) => ({ score, item: index + 1 }))
-    .filter(item => item.score >= 4);
-  
-  if (highRiskItems.length > 0) {
-    const itemNumbers = highRiskItems.map(i => i.item).join(", ");
-    alerts.push(`Clinically significant scores (≥4) on item(s): ${itemNumbers}. These specific prodromal symptoms warrant detailed clinical evaluation.`);
+
+  if (psychosisRisk) {
+    alerts.push(
+      `Prodromal items scored ≥2: ${flaggedItems.join(", ")}. These warrant detailed clinical evaluation.`,
+    );
   }
-  
-  let severityLevel = '';
-  let interpretation = '';
-  
-  if (totalScore < 6) {
-    severityLevel = 'Low Risk';
-    interpretation = 'Low prodromal symptoms. No immediate psychosis risk concern. Continue routine monitoring if clinically indicated.';
-  } else if (totalScore < 10) {
-    severityLevel = 'Moderate Risk';
-    interpretation = 'Moderate prodromal symptoms present. Consider follow-up assessment and monitor for symptom progression. May benefit from psychoeducation and stress management.';
-  } else if (totalScore < 18) {
-    severityLevel = 'High Risk';
-    interpretation = 'High prodromal symptom severity (score ≥10). Further clinical evaluation recommended. Consider referral to specialized early psychosis intervention service.';
-    alerts.push('Total score ≥10 indicates need for comprehensive psychosis risk assessment.');
+
+  let severityLevel: string;
+  let interpretation: string;
+
+  if (total < 6) {
+    severityLevel = "Low Risk";
+    interpretation = "Low prodromal symptoms. No immediate psychosis risk concern. Continue routine monitoring if clinically indicated.";
+  } else if (total < 10) {
+    severityLevel = "Moderate Risk";
+    interpretation = "Moderate prodromal symptoms present. Consider follow-up assessment and monitor for symptom progression.";
+  } else if (total < 18) {
+    severityLevel = "High Risk";
+    interpretation = "High prodromal symptom severity (score ≥10). Consider referral to a specialised early psychosis intervention service.";
+    alerts.push("Total score ≥10 indicates need for comprehensive psychosis risk assessment.");
   } else {
-    severityLevel = 'Very High Risk';
-    interpretation = 'Very high prodromal symptom severity. Urgent comprehensive psychiatric evaluation required. Strong consideration for early intervention program referral and close monitoring.';
-    alerts.push('URGENT: Very high prodromal psychosis risk. Immediate specialist evaluation recommended.');
+    severityLevel = "Very High Risk";
+    interpretation = "Very high prodromal symptom severity. Urgent comprehensive psychiatric evaluation required.";
+    alerts.push("URGENT: Very high prodromal psychosis risk. Immediate specialist evaluation recommended.");
   }
-  
-  return { totalScore, severityLevel, interpretation, alerts: alerts.length > 0 ? alerts : undefined };
+
+  return withVersion({
+    totalScore: total,
+    severityLevel,
+    interpretation,
+    alerts: alerts.length ? alerts : undefined,
+  });
 };
+

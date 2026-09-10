@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { scorePSQ } from "@/lib/screening/scoringUtils";
+import { getRulesVersionId } from "@/lib/clinical/rulesVersion";
 import { Loader2, AlertTriangle } from "lucide-react";
 
 interface PSQFormProps {
@@ -61,6 +62,7 @@ export const PSQForm = ({ patientId, onComplete }: PSQFormProps) => {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase.from("screening_assessments").insert({
+        rules_version_id: await getRulesVersionId(),
         patient_id: patientId,
         user_id: user.id,
         tool_type: "PSQ",
