@@ -70,11 +70,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Fetch user role when session changes
         if (session?.user) {
+          setRolesLoading(true);
           setTimeout(() => {
             fetchUserRole(session.user.id);
           }, 0);
         } else {
           setUserRole(null);
+          setUserRoles([]);
+          setRolesLoading(false);
         }
       }
     );
