@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReportAIIncidentDialog } from "@/components/ai/ReportAIIncidentDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -297,6 +298,7 @@ export const TreatmentPlanSuggestions = ({
                 <Sparkles className="h-4 w-4 mr-2" />
                 Regenerate
               </Button>
+              <ReportAIIncidentDialog sourceFunction="generate-treatment-plan" />
             </div>
           </div>
         </CardHeader>
