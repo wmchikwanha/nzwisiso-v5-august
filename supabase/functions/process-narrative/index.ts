@@ -5,6 +5,7 @@ import {
   RULES_ENGINE_VERSION,
 } from "../_shared/rulesEngine.ts";
 import { NoActiveModelError, provenanceOf, resolveAIConfig, asUserContent } from "../_shared/aiRegistry.ts";
+import { guardInput, logInference, logAudit, serviceClient as guardClient } from "../_shared/aiGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -339,6 +340,38 @@ serve(async (req) => {
 
   console.log("Processing narrative (streaming via Lovable AI):", narrative.substring(0, 100));
 
+  // Narrative text is untrusted: screen it before it reaches the model.
+  const guard = guardInput(narrative);
+  const guardDb = guardClient();
+  const startedAt = Date.now();
+
+  if (guard.rejected) {
+    return new Response(
+      JSON.stringify({ error: "Narrative is too long. Please shorten it and try again." }),
+      { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  await logInference(guardDb, {
+    function_name: "process-narrative",
+    model_id: aiConfig.modelId,
+    model_version: aiConfig.modelVersionLabel,
+    prompt_template_id: aiConfig.promptTemplateId,
+    input_chars: guard.originalChars,
+    injection_detected: guard.detected,
+    injection_patterns: guard.patterns,
+    latency_ms: Date.now() - startedAt,
+  });
+
+  if (guard.detected) {
+    await logAudit(guardDb, {
+      action: "injection_pattern_detected",
+      resource_type: "Observation",
+      outcome: "flagged",
+      description: `process-narrative: ${guard.patterns.join(", ")}`,
+    });
+  }
+
   const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -351,7 +384,7 @@ serve(async (req) => {
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: aiConfig.systemPrompt },
-        { role: "user", content: asUserContent(narrative) },
+        { role: "user", content: asUserContent(guard.text) },
       ],
     }),
   });
