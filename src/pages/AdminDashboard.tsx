@@ -49,7 +49,7 @@ interface AuditEvent {
 const ROLES = ["admin", "psychiatrist", "chw", "viewer", "safety_monitor", "principal_investigator"];
 
 const AdminDashboard = () => {
-  const { session, userRole, loading } = useAuth();
+  const { session, userRole, loading, rolesLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
