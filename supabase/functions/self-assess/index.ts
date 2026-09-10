@@ -386,6 +386,7 @@ serve(async (req) => {
         region: session.location_region ?? undefined,
         language: session.language_code,
         narrative: session.narrative_text ?? undefined,
+        sessionId: session.id,
       });
 
       // Persist AI suggestions on the session (recipient-only via RLS)
