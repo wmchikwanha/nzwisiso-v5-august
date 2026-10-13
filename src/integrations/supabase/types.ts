@@ -2183,6 +2183,7 @@ export type Database = {
         | "chw"
         | "safety_monitor"
         | "principal_investigator"
+        | "mh_nurse"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2317,6 +2318,7 @@ export const Constants = {
         "chw",
         "safety_monitor",
         "principal_investigator",
+        "mh_nurse",
       ],
     },
   },
