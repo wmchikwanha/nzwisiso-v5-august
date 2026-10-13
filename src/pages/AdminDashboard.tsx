@@ -48,7 +48,7 @@ interface AuditEvent {
   description: string | null;
 }
 
-const ROLES = ["admin", "psychiatrist", "chw", "viewer", "safety_monitor", "principal_investigator"];
+const ROLES = ["admin", "psychiatrist", "mh_nurse", "chw", "viewer", "safety_monitor", "principal_investigator"];
 
 const AdminDashboard = () => {
   const { session, userRole, loading, rolesLoading } = useAuth();

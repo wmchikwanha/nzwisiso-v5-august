@@ -20,6 +20,7 @@ const ROLE_PRECEDENCE = [
   "principal_investigator",
   "safety_monitor",
   "psychiatrist",
+  "mh_nurse",
   "chw",
   "viewer",
 ];

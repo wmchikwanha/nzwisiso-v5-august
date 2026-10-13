@@ -10,7 +10,7 @@ const cors = {
 const DEMO: Record<string, { email: string; name: string; role: string }> = {
   admin: { email: "demo.admin@nzwisiso.test", name: "Demo Administrator", role: "admin" },
   clinician: { email: "demo.clinician@nzwisiso.test", name: "Dr Demo Clinician", role: "psychiatrist" },
-  nurse: { email: "demo.nurse@nzwisiso.test", name: "Demo MH Nurse", role: "psychiatrist" },
+  nurse: { email: "demo.nurse@nzwisiso.test", name: "Demo MH Nurse", role: "mh_nurse" },
   chw: { email: "demo.chw@nzwisiso.test", name: "Demo Community Health Worker", role: "chw" },
 };
 const PASSWORD = "Nzwisiso-Sandbox-2026!";
