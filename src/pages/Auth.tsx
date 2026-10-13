@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Stethoscope, HeartPulse, Users, ShieldCheck } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { Footer } from "@/components/Footer";
 import { PRIVACY_NOTE } from "@/lib/copy";
@@ -18,6 +18,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
   const [signupRole, setSignupRole] = useState<IntendedRole>("psychiatrist");
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -139,26 +140,76 @@ const Auth = () => {
     }
   };
 
+  const enterAs = async (persona: string) => {
+    setDemoLoading(persona);
+    const { data, error } = await supabase.functions.invoke("demo-login", { body: { persona } });
+    if (error || !data?.email) {
+      setDemoLoading(null);
+      toast({ variant: "destructive", title: "Couldn't open sandbox", description: error?.message ?? data?.error });
+      return;
+    }
+    const { error: e2 } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
+    setDemoLoading(null);
+    if (e2) {
+      toast({ variant: "destructive", title: "Couldn't open sandbox", description: e2.message });
+      return;
+    }
+    navigate(persona === "admin" ? "/admin" : persona === "chw" ? "/chw" : "/");
+  };
+
+  const personas = [
+    { id: "clinician", label: "Clinician", desc: "Diagnosis, treatment & full screening", icon: Stethoscope },
+    { id: "nurse", label: "MH Nurse", desc: "Assessment, screening & care planning", icon: HeartPulse },
+    { id: "chw", label: "Community Health Worker", desc: "First contact, PHQ-9 & referral up", icon: Users },
+    { id: "admin", label: "Administrator", desc: "Team, facilities & oversight", icon: ShieldCheck },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-        <Card className="w-full max-w-md">
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-background via-background to-primary/10 p-4">
+        <div className="text-center max-w-xl space-y-2">
+          <h1 className="text-3xl font-bold">Welcome to Nzwisiso</h1>
+          <p className="text-muted-foreground">
+            Sandbox mode — pick a role to explore. No sign-up needed; all data is synthetic.
+          </p>
+        </div>
+        <div className="grid w-full max-w-3xl grid-cols-1 sm:grid-cols-2 gap-3">
+          {personas.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => enterAs(p.id)}
+              disabled={!!demoLoading}
+              className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition hover:border-primary hover:shadow-md disabled:opacity-60"
+            >
+              <span className="rounded-md bg-primary/10 p-2 text-primary">
+                {demoLoading === p.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <p.icon className="h-5 w-5" />}
+              </span>
+              <span>
+                <span className="block font-semibold">Enter as {p.label}</span>
+                <span className="block text-sm text-muted-foreground">{p.desc}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <a href="/self-assess" className="text-sm text-primary hover:underline">
+          Not a clinician? Take a confidential self-assessment →
+        </a>
+        <details className="w-full max-w-md">
+          <summary className="cursor-pointer text-center text-sm text-muted-foreground">
+            Have a personal account? Sign in or sign up
+          </summary>
+        <Card className="w-full mt-3">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">
+            <CardTitle className="text-xl font-bold text-center">
               Mental Health Clinical Assistant
             </CardTitle>
             <CardDescription className="text-center">
               Sign up/in to use this decision support tool.
             </CardDescription>
-            <div className="text-center pt-2">
-              <a href="/self-assess" className="text-xs text-primary hover:underline">
-                Not a clinician? Take a confidential self-assessment →
-              </a>
-            </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
-              <p className="text-blue-800">
+            <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-md text-sm">
+              <p>
                 <strong>Privacy Note:</strong> {PRIVACY_NOTE}
               </p>
             </div>
@@ -263,6 +314,7 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
+        </details>
       </div>
       <Footer />
     </div>
