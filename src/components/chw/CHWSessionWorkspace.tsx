@@ -248,7 +248,7 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Safety alert:</strong> The client endorsed PHQ-9 Item 9 (thoughts of self-harm).
+            <strong>Safety alert:</strong> The client reported thoughts of self-harm (PHQ-9 Item 9 or SSQ-14 Item 2).
             Deterministic crisis pathway: <strong>{crisisPathway.pathwayType}</strong> ({crisisPathway.urgency}).
             An <strong>upward referral is required</strong> before closing this session.
             <ul className="list-disc pl-5 mt-2 space-y-1">
