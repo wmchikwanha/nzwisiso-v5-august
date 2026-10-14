@@ -22,6 +22,7 @@ import { InputZone } from "@/components/InputZone";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { PHQ9Form } from "@/components/screening/PHQ9Form";
+import { SSQ14Form } from "@/components/screening/SSQ14Form";
 import { CHWReferralPicker } from "./CHWReferralPicker";
 import { retainAudioChunk, hasRecordingConsent } from "@/lib/audio/retention";
 import { persistChwSessionFhir } from "@/lib/fhir/persist";
@@ -68,7 +69,23 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
   const [consentId, setConsentId] = useState<string | null>(null);
   const [consentOk, setConsentOk] = useState(false);
   const [retainedCount, setRetainedCount] = useState(0);
+  const [showSsq, setShowSsq] = useState(false);
+  const [ssq, setSsq] = useState<{ total_score: number; severity_level: string; responses: any } | null>(null);
 
+  const loadSsq = async (s: ChwSession | null = session) => {
+    if (!s) return null;
+    const { data } = await supabase
+      .from("screening_assessments")
+      .select("total_score, severity_level, responses")
+      .eq("patient_id", s.patient_id)
+      .eq("tool_type", "SSQ14")
+      .gte("administered_at", s.started_at)
+      .order("administered_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setSsq((data as any) ?? null);
+    return data as any;
+  };
 
   useEffect(() => {
     (async () => {
@@ -80,6 +97,7 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
       if (s) {
         setSession(s as ChwSession);
         setNarrative((s as ChwSession).narrative_text || "");
+        loadSsq(s as ChwSession);
         const { data: p } = await supabase
           .from("patients")
           .select("patient_identifier")
@@ -91,6 +109,7 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
         setConsentId(consent.consentId);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
 
@@ -194,11 +213,24 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
     return <div className="text-center py-12 text-muted-foreground">Loading session…</div>;
   }
 
+  const ssqItem2 = !!ssq && Array.isArray(ssq.responses) && (ssq.responses[1] ?? 0) >= 1;
   // Deterministic crisis pathway — no AI involved in this decision.
   const crisisPathway = determineCrisisPathway({
     phq9Item9: session.phq9_item9_flag ? 1 : 0,
+    narrativeFlags: ssqItem2 ? ["SSQ-14 item 2: suicidal thoughts endorsed"] : [],
   });
   const item9Flag = crisisPathway.blocksSessionClosure;
+
+  // Combined PHQ-9 + SSQ-14 outcome (deterministic, takes the higher concern).
+  const phq = session.phq9_score;
+  const ssqTotal = ssq?.total_score ?? null;
+  const outcome = item9Flag
+    ? { level: "emergency", label: "Emergency referral", advice: "Self-harm thoughts were reported. Stay with the client and send an emergency referral now." }
+    : (phq != null && phq >= 15) || (ssqTotal != null && ssqTotal >= 11)
+    ? { level: "refer", label: "Refer up", advice: "Moderately severe to severe distress. Refer to a nurse or clinician for assessment." }
+    : (phq != null && phq >= 10) || (ssqTotal != null && ssqTotal >= 8)
+    ? { level: "counsel", label: "Problem-solving support + review", advice: "Screens positive for common mental disorder. Offer Friendship Bench problem-solving sessions; refer up if no improvement or the client worsens." }
+    : { level: "low", label: "Below threshold", advice: "Psychoeducation and watchful waiting. Save & Close, and invite the client back if needed." };
 
   return (
     <div className="space-y-6">
