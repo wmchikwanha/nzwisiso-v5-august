@@ -323,61 +323,126 @@ export function CHWSessionWorkspace({ sessionId, onExit }: Props) {
         </CardContent>
       </Card>
 
-      {/* PHQ-9 */}
+      {/* Screening: Step 1 PHQ-9 → Step 2 SSQ-14 → Combined outcome */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <ClipboardList className="h-4 w-4" /> PHQ-9 Screening
+            <ClipboardList className="h-4 w-4" /> Screening
           </CardTitle>
           <CardDescription>
-            The PHQ-9 is the only screening tool available to CHWs. Item 9 ≥ 1 forces an emergency
-            referral.
+            Two short screens, in order. Step 1: PHQ-9 (depression). Step 2: SSQ-14 (Shona Symptom
+            Questionnaire, Friendship Bench). The combined outcome below guides whether to close or
+            refer up. A self-harm answer on either tool forces an emergency referral.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {session.phq9_score != null ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <Badge>{session.phq9_severity}</Badge>{" "}
-                <span className="ml-2 text-sm">Score: {session.phq9_score}/27</span>
+        <CardContent className="space-y-4">
+          {/* Step 1 */}
+          <div className="rounded-md border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Badge variant={session.phq9_score != null ? "default" : "outline"}>Step 1</Badge>
+                <span className="text-sm font-medium">PHQ-9</span>
+                {session.phq9_score != null && (
+                  <span className="text-sm text-muted-foreground">
+                    {session.phq9_score}/27 · {session.phq9_severity}
+                  </span>
+                )}
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowPhq9(true)}>
-                Re-administer
-              </Button>
+              {!showPhq9 && (
+                <Button
+                  variant={session.phq9_score != null ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => { setShowPhq9(true); setShowSsq(false); }}
+                >
+                  {session.phq9_score != null ? "Re-administer" : "Start PHQ-9"}
+                </Button>
+              )}
             </div>
-          ) : showPhq9 ? (
-            <PHQ9Form
-              patientId={session.patient_id}
-              onComplete={async () => {
-                const { data: latest } = await supabase
-                  .from("screening_assessments")
-                  .select("*")
-                  .eq("patient_id", session.patient_id)
-                  .eq("tool_type", "PHQ9")
-                  .order("administered_at", { ascending: false })
-                  .limit(1)
-                  .single();
-                if (latest) {
-                  const responses = (latest as any).responses as number[] | null;
-                  const item9 = Array.isArray(responses)
-                    ? determineCrisisPathway({ phq9Item9: responses[8] || 0 }).blocksSessionClosure
-                    : false;
-                  await supabase
-                    .from("chw_sessions")
-                    .update({
-                      phq9_score: latest.total_score,
-                      phq9_severity: latest.severity_level,
-                      phq9_item9_flag: item9,
-                    })
-                    .eq("id", sessionId);
-                  await refreshSession();
-                  if (item9) setShowReferral(true);
-                }
-                setShowPhq9(false);
-              }}
-            />
-          ) : (
-            <Button onClick={() => setShowPhq9(true)}>Administer PHQ-9</Button>
+            {showPhq9 && (
+              <PHQ9Form
+                patientId={session.patient_id}
+                onComplete={async () => {
+                  const { data: latest } = await supabase
+                    .from("screening_assessments")
+                    .select("*")
+                    .eq("patient_id", session.patient_id)
+                    .eq("tool_type", "PHQ9")
+                    .order("administered_at", { ascending: false })
+                    .limit(1)
+                    .single();
+                  if (latest) {
+                    const responses = (latest as any).responses as number[] | null;
+                    const item9 = Array.isArray(responses)
+                      ? determineCrisisPathway({ phq9Item9: responses[8] || 0 }).blocksSessionClosure
+                      : false;
+                    await supabase
+                      .from("chw_sessions")
+                      .update({
+                        phq9_score: latest.total_score,
+                        phq9_severity: latest.severity_level,
+                        phq9_item9_flag: item9,
+                      })
+                      .eq("id", sessionId);
+                    await refreshSession();
+                    if (item9) setShowReferral(true);
+                  }
+                  setShowPhq9(false);
+                  if (!ssq) setShowSsq(true); // move straight on to Step 2
+                }}
+              />
+            )}
+          </div>
+
+          {/* Step 2 */}
+          <div className="rounded-md border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Badge variant={ssq ? "default" : "outline"}>Step 2</Badge>
+                <span className="text-sm font-medium">SSQ-14</span>
+                {ssq && (
+                  <span className="text-sm text-muted-foreground">
+                    {ssq.total_score}/14 · {ssq.severity_level}
+                  </span>
+                )}
+              </div>
+              {!showSsq && (
+                <Button
+                  variant={ssq ? "outline" : session.phq9_score != null ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => { setShowSsq(true); setShowPhq9(false); }}
+                >
+                  {ssq ? "Re-administer" : "Start SSQ-14"}
+                </Button>
+              )}
+            </div>
+            {showSsq && (
+              <SSQ14Form
+                patientId={session.patient_id}
+                onComplete={async () => {
+                  const s = await loadSsq();
+                  setShowSsq(false);
+                  if (s && Array.isArray(s.responses) && (s.responses[1] ?? 0) >= 1) setShowReferral(true);
+                }}
+              />
+            )}
+          </div>
+
+          {/* Combined outcome */}
+          {(session.phq9_score != null || ssq) && (
+            <div className={`rounded-md border p-3 space-y-2 ${outcome.level === "emergency" ? "border-destructive" : ""}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">Combined outcome</span>
+                <Badge variant={outcome.level === "emergency" || outcome.level === "refer" ? "destructive" : "secondary"}>
+                  {outcome.label}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{outcome.advice}</p>
+              {(session.phq9_score == null || !ssq) && (
+                <p className="text-xs text-muted-foreground">
+                  Complete {session.phq9_score == null ? "PHQ-9" : "SSQ-14"} for a full picture.
+                </p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
