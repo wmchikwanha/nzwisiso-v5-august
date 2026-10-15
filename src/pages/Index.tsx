@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Footer } from "@/components/Footer";
 import { AboutDialog } from "@/components/AboutDialog";
+import { GovernanceDialog } from "@/components/governance/GovernanceDialog";
 import { FacilityRegistrationDialog } from "@/components/facility/FacilityRegistrationDialog";
 
 import { HelpCentre } from "@/components/HelpCentre";
@@ -297,6 +298,7 @@ const Index = () => {
               </div>
               <HelpCentre />
               <AboutDialog />
+              <GovernanceDialog />
               <FacilityRegistrationDialog mode="self" />
 
             </div>
