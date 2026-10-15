@@ -15,6 +15,7 @@ import { z } from "zod";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { exportCaseSummaryToPDF } from "@/lib/caseSummaryPdfExport";
 import { getGenderLabel, getLanguageName } from "@/lib/languages";
+import { PatientAuditTrail } from "@/components/governance/PatientAuditTrail";
 
 interface Patient {
   id: string;
@@ -481,6 +482,8 @@ export const PatientProfile = ({ patientId, onBack }: PatientProfileProps) => {
           </div>
         </CardContent>
       </Card>
+
+      <PatientAuditTrail patientId={patient.id} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Assessment History */}

@@ -1,0 +1,1 @@
+CREATE POLICY "Oversight roles can read all audit events" ON public.audit_events FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'principal_investigator'::app_role) OR public.has_role(auth.uid(), 'safety_monitor'::app_role));

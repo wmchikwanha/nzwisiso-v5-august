@@ -20,6 +20,7 @@ import { CHWReferralsList } from "@/components/chw/CHWReferralsList";
 import { CHWHistory } from "@/components/chw/CHWHistory";
 import { CHWSelfReferrals } from "@/components/chw/CHWSelfReferrals";
 import { Footer } from "@/components/Footer";
+import { GovernanceDialog } from "@/components/governance/GovernanceDialog";
 
 const CHWDashboard = () => {
   const { user, loading, userRole, signOut } = useAuth();
@@ -61,6 +62,7 @@ const CHWDashboard = () => {
                 PHQ-9 · refer up
               </p>
             </div>
+            <GovernanceDialog />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
