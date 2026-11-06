@@ -131,7 +131,7 @@ export const PilotPanel = () => {
             <div>
               <Label htmlFor="allow-real" className="text-sm font-medium">Allow real client data</Label>
               <p className="text-xs text-muted-foreground">
-                Keep this off. The pilot environment is for synthetic data only.
+                Keep this off. This prototype is for synthetic data only.
               </p>
             </div>
             <Switch id="allow-real" checked={allowRealData} onCheckedChange={setAllowRealData} />
