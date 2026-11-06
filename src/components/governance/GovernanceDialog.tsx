@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PrototypeLimits } from "@/components/PrototypeLimits";
 
 const SAFEGUARDS: { title: string; detail: string }[] = [
   { title: "AI suggests, clinician decides", detail: "Every AI output is labelled as a suggestion and needs explicit clinician approval before it is finalised." },
@@ -34,6 +35,7 @@ export const GovernanceDialog = () => (
           Safeguards built into Nzwisiso for clinical, ethical and research oversight.
         </DialogDescription>
       </DialogHeader>
+      <PrototypeLimits className="mb-3" />
       <ul className="space-y-3">
         {SAFEGUARDS.map((s) => (
           <li key={s.title} className="flex gap-3">

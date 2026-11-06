@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Stethoscope, HeartPulse, Users, ShieldCheck } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { Footer } from "@/components/Footer";
-import { PRIVACY_NOTE } from "@/lib/copy";
+import { PrototypeLimits } from "@/components/PrototypeLimits";
+import { APP_ONE_LINER, PRIVACY_NOTE } from "@/lib/copy";
 
 type IntendedRole = "psychiatrist" | "chw";
 
@@ -191,6 +192,8 @@ const Auth = () => {
             </button>
           ))}
         </div>
+        <p className="max-w-2xl text-center text-sm text-muted-foreground">{APP_ONE_LINER}</p>
+        <PrototypeLimits className="w-full max-w-2xl" />
         <a href="/self-assess" className="text-sm text-primary hover:underline">
           Not a clinician? Take a confidential self-assessment →
         </a>
