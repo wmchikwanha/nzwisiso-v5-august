@@ -7,9 +7,7 @@ import { usePilotConfig } from "@/hooks/usePilotConfig";
  * including the public self-assessment and intake routes.
  */
 export const PilotBanner = () => {
-  const { pilotMode, config } = usePilotConfig();
-
-  if (!pilotMode) return null;
+  const { config } = usePilotConfig();
 
   return (
     <div
@@ -22,11 +20,6 @@ export const PilotBanner = () => {
         <span className="text-[11px] font-semibold uppercase tracking-wide sm:text-xs">
           {PILOT_BANNER_TEXT}
         </span>
-        {config?.pilot_version && (
-          <span className="hidden text-[11px] opacity-80 sm:inline">
-            ({config.pilot_version})
-          </span>
-        )}
       </div>
     </div>
   );

@@ -290,10 +290,10 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
-                  Nzwisiso: The Clinical Bridge
+                  Nzwisiso: research prototype
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Multi-lingual Psychiatric Clinical Scribe | Shona · Ndebele · Xhosa · Zulu · Sotho · Afrikaans · Swahili · French · Portuguese · English
+                  Documentation-support prototype, designed with Southern African languages in mind | Shona · Ndebele · Xhosa · Zulu · Sotho · Afrikaans · Swahili · French · Portuguese · English
                 </p>
               </div>
               <HelpCentre />

@@ -137,7 +137,7 @@ export function AIDiagnosticSuggestions({
       });
       toast({
         title: 'Suggestions Generated',
-        description: 'AI diagnostic suggestions are ready for review.',
+        description: 'Draft considerations are ready for clinician review.',
       });
     } catch (err) {
       console.error('Error generating suggestions:', err);
@@ -175,7 +175,7 @@ export function AIDiagnosticSuggestions({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            AI Diagnostic Suggestions
+            Draft considerations for clinician review
           </CardTitle>
           <p className="text-xs text-muted-foreground">{AI_LAYER_LABEL}</p>
           <div className="flex items-center gap-1">
@@ -197,7 +197,7 @@ export function AIDiagnosticSuggestions({
             ) : (
               <>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Generate AI-powered diagnostic suggestions based on clinical data
+                  Generate a draft list of considerations for clinician review. The clinician enters the diagnosis.
                 </p>
                 <Button
                   onClick={generateSuggestions}
@@ -260,10 +260,10 @@ export function AIDiagnosticSuggestions({
               <div className="border rounded-lg p-3 bg-primary/5">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-medium text-muted-foreground">
-                    Primary Diagnosis Suggestion
+                    Draft consideration (clinician to decide)
                   </p>
                   <Badge className={getConfidenceColor(suggestions.primaryDiagnosis.confidence)}>
-                    {Math.round((calibrateConfidence(suggestions.primaryDiagnosis.confidence / 100) ?? 0) * 100)}% calibrated confidence
+                    {Math.round((calibrateConfidence(suggestions.primaryDiagnosis.confidence / 100) ?? 0) * 100)}% model-reported confidence (not yet evaluated)
                     {' · '}
                     {confidenceBand(calibrateConfidence(suggestions.primaryDiagnosis.confidence / 100)).label}
                   </Badge>

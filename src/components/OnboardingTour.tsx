@@ -30,7 +30,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "screening",
     title: "Standardized Screening Tools",
-    description: "Access 5 validated instruments: GAD-7 (anxiety), PHQ-9 (depression), PCL-5 (PTSD), MMSE (cognitive), and PSQ (psychosis). Scores auto-populate MSE analysis.",
+    description: "Access 5 published questionnaires: GAD-7 (anxiety), PHQ-9 (depression), PCL-5 (PTSD), MMSE (cognitive), and PSQ (psychosis). Scores add context to the mental state examination draft.",
     icon: <ClipboardList className="h-8 w-8 text-primary" />,
     position: "center"
   },

@@ -95,9 +95,9 @@ const GettingStartedTab = () => (
             <li><strong>Administer Screening:</strong> Use the Screening tab to administer relevant tools (GAD-7, PHQ-9, PCL-5, PRIME-R-5, etc.).</li>
             <li><strong>Record Narrative:</strong> In Assessment tab, record or type your clinical observations.</li>
             <li><strong>Process with AI:</strong> Click "Process Narrative" to generate the MSE with screening context.</li>
-            <li><strong>Review AI Suggestions:</strong> Check AI diagnostic suggestions based on MSE and screening data.</li>
-            <li><strong>Complete Diagnosis:</strong> Select ICD-11/DSM-5 codes, add differential diagnoses, and cultural formulation.</li>
-            <li><strong>Generate Treatment Plan:</strong> Review and generate AI-suggested treatment recommendations.</li>
+            <li><strong>Review AI Suggestions:</strong> Read the AI draft considerations; they are not a diagnosis.</li>
+            <li><strong>Clinician diagnosis (entered by the clinician):</strong> Select ICD-11/DSM-5 codes, add differential diagnoses, and cultural formulation.</li>
+            <li><strong>Generate Treatment Plan:</strong> Generate draft care-plan notes for your review. The app does not recommend treatment.</li>
             <li><strong>Crisis Intervention:</strong> Use First Aid module if crisis situations arise.</li>
             <li><strong>Schedule Follow-up:</strong> Book appointments based on treatment plan intervals.</li>
             <li><strong>Export Documentation:</strong> Download Case Summary PDFs for clinical records.</li>
@@ -217,7 +217,7 @@ const RecordingTab = () => (
 const ScreeningTab = () => (
   <div className="space-y-4">
     <p className="text-sm text-muted-foreground">
-      Administer validated clinical screening instruments. Results auto-populate MSE analysis and diagnostic formulation context.
+      Administer published screening questionnaires. Results auto-populate MSE analysis and diagnostic formulation context.
     </p>
     
     <Accordion type="single" collapsible className="w-full">
@@ -336,7 +336,7 @@ const ScreeningTab = () => (
       <AccordionItem value="context">
         <AccordionTrigger>How Screening Informs MSE & Diagnosis</AccordionTrigger>
         <AccordionContent className="text-sm space-y-2">
-          <p>Screening results automatically enhance MSE analysis and diagnostic suggestions:</p>
+          <p>Screening results add context to the mental state examination draft:</p>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>PHQ-9:</strong> Informs mood, affect, suicidality sections, and depressive disorder diagnoses</li>
             <li><strong>GAD-7:</strong> Informs anxiety features, worry patterns, and anxiety disorder diagnoses</li>
@@ -357,7 +357,7 @@ const ScreeningTab = () => (
 const MSETab = () => (
   <div className="space-y-4">
     <p className="text-sm text-muted-foreground">
-      AI-generated Mental Status Examination and treatment planning with clinical governance.
+      Helps the clinician lay out a mental state examination draft and draft notes, all for clinician review.
     </p>
     
     <Accordion type="single" collapsible className="w-full">
@@ -381,17 +381,17 @@ const MSETab = () => (
       </AccordionItem>
       
       <AccordionItem value="cultural">
-        <AccordionTrigger>Cultural Idiom Recognition</AccordionTrigger>
+        <AccordionTrigger>Culturally specific expressions of distress</AccordionTrigger>
         <AccordionContent className="text-sm space-y-2">
-          <p>The AI recognizes Southern African cultural expressions:</p>
+          <p>The app flags culturally specific expressions of distress for the clinician to interpret, for example:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li><strong>Kufungisisa (Shona):</strong> "Thinking too much" - often depression/anxiety</li>
+            <li><strong>Kufungisisa (Shona):</strong> "Thinking too much"</li>
             <li><strong>Mhepo (Shona):</strong> Spirit-related distress</li>
             <li><strong>Ukuthwasa:</strong> Calling to traditional healing</li>
             <li><strong>Amafufunyana:</strong> Possession states</li>
           </ul>
           <p className="text-muted-foreground mt-2">
-            Cultural interpretations are included alongside clinical formulations.
+            Entries are drawn from published literature and are provisional. They have not been reviewed by any expert panel. The clinician decides what an expression means for this patient.
           </p>
         </AccordionContent>
       </AccordionItem>
@@ -399,7 +399,7 @@ const MSETab = () => (
       <AccordionItem value="treatment">
         <AccordionTrigger>Treatment Recommendations</AccordionTrigger>
         <AccordionContent className="text-sm space-y-2">
-          <p>AI-generated treatment plans include:</p>
+          <p>AI-generated draft care-plan notes (not recommendations) include:</p>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Primary interventions:</strong> Core treatment approach</li>
             <li><strong>Psychosocial interventions:</strong> Therapy, support groups</li>
@@ -489,9 +489,9 @@ const DiagnosisTab = () => (
       </AccordionItem>
       
       <AccordionItem value="ai-suggestions">
-        <AccordionTrigger>Using AI Diagnostic Suggestions</AccordionTrigger>
+        <AccordionTrigger>Using AI draft considerations</AccordionTrigger>
         <AccordionContent className="text-sm space-y-2">
-          <p>AI analyzes MSE and screening data to suggest possible diagnoses:</p>
+          <p>The AI produces a draft list of considerations for clinician review. It makes no diagnosis; the clinician enters the diagnosis.</p>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Evidence-based:</strong> Suggestions reference specific clinical findings</li>
             <li><strong>Confidence levels:</strong> Each suggestion includes a confidence indicator</li>
@@ -516,7 +516,7 @@ const DiagnosisTab = () => (
             <li><strong>Overall assessment:</strong> How culture influences diagnosis and care</li>
           </ul>
           <p className="text-muted-foreground mt-2">
-            Cultural formulation is essential for accurate diagnosis and effective treatment planning in Southern African contexts.
+            Cultural formulation is the clinician's own record of how culture shapes this patient's presentation.
           </p>
         </AccordionContent>
       </AccordionItem>
@@ -598,7 +598,7 @@ const FirstAidTab = () => (
             <li>Determine appropriate level of care</li>
           </ol>
           <p className="text-muted-foreground mt-2">
-            Protocols are based on WHO mhGAP and adapted for Southern African contexts.
+            Protocols reference WHO mhGAP and are designed with Southern African languages in mind. Not yet evaluated.
           </p>
         </AccordionContent>
       </AccordionItem>
@@ -792,9 +792,9 @@ const FAQTab = () => (
       </AccordionItem>
       
       <AccordionItem value="ai-accuracy">
-        <AccordionTrigger>How accurate is the AI analysis?</AccordionTrigger>
+        <AccordionTrigger>How reliable is the AI draft?</AccordionTrigger>
         <AccordionContent className="text-sm space-y-2">
-          <p>The AI provides suggestions based on your clinical narrative and screening data. However:</p>
+          <p>The AI output is not yet evaluated. It produces drafts based on your clinical narrative and screening data. However:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>AI does not replace clinical judgment</li>
             <li>Always verify AI-generated content</li>
@@ -830,9 +830,9 @@ const FAQTab = () => (
       </AccordionItem>
       
       <AccordionItem value="validation">
-        <AccordionTrigger>Is this clinically validated?</AccordionTrigger>
+        <AccordionTrigger>Has this been evaluated?</AccordionTrigger>
         <AccordionContent className="text-sm">
-          <p>Nzwisiso is currently in development with clinical validation planned. The screening tools used (GAD-7, PHQ-9, PCL-5, MMSE, PSQ, PRIME-R-5) are internationally validated instruments. AI-generated content should be reviewed by qualified clinicians.</p>
+          <p>No. Nzwisiso is a research prototype. It has not been evaluated with clinicians or patients and has no ethics approval for live use. The screening questionnaires are published instruments; the app's own outputs are not yet evaluated. The clinician is responsible for every word in the record.</p>
         </AccordionContent>
       </AccordionItem>
       

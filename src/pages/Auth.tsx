@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Stethoscope, HeartPulse, Users, ShieldCheck } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { Footer } from "@/components/Footer";
-import { PRIVACY_NOTE } from "@/lib/copy";
+import { PrototypeLimits } from "@/components/PrototypeLimits";
+import { APP_ONE_LINER, PRIVACY_NOTE } from "@/lib/copy";
 
 type IntendedRole = "psychiatrist" | "chw";
 
@@ -191,6 +192,8 @@ const Auth = () => {
             </button>
           ))}
         </div>
+        <p className="max-w-2xl text-center text-sm text-muted-foreground">{APP_ONE_LINER}</p>
+        <PrototypeLimits className="w-full max-w-2xl" />
         <a href="/self-assess" className="text-sm text-primary hover:underline">
           Not a clinician? Take a confidential self-assessment →
         </a>
@@ -201,10 +204,10 @@ const Auth = () => {
         <Card className="w-full mt-3">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl font-bold text-center">
-              Mental Health Clinical Assistant
+              Nzwisiso research prototype
             </CardTitle>
             <CardDescription className="text-center">
-              Sign up/in to use this decision support tool.
+              Sign up/in to use this documentation-support prototype. It makes no diagnosis.
             </CardDescription>
           </CardHeader>
           <CardContent>

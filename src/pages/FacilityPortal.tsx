@@ -260,11 +260,11 @@ function ClinicalView({
         <Card className="border-primary/30">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              AI Diagnostic Suggestions
+              Draft diagnostic considerations (for clinician review)
               <Badge variant="outline" className="text-xs">For clinical review only</Badge>
             </CardTitle>
             <CardDescription>
-              AI-generated suggestion requiring clinical review. The patient has NOT seen this. Final diagnosis is yours.
+              AI-generated suggestion requiring clinical review. The patient has NOT seen this. This is not a diagnosis; the clinician enters the diagnosis.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm space-y-3">

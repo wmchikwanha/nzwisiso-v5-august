@@ -99,7 +99,7 @@ export const SSQ14Form = ({ patientId, onComplete }: SSQ14FormProps) => {
           <div>
             <CardTitle>SSQ-14: Shona Symptom Questionnaire</CardTitle>
             <CardDescription>
-              In the past week, have you experienced any of the following? Locally validated
+              In the past week, have you experienced any of the following? Published
               Friendship Bench screener. Positive screen at a total of 8 or more.
             </CardDescription>
           </div>
@@ -123,7 +123,7 @@ export const SSQ14Form = ({ patientId, onComplete }: SSQ14FormProps) => {
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Score {live.totalScore} is at or above the validated cut-point of 8 — screens
+              Score {live.totalScore} is at or above the published cut-point of 8 — screens
               positive for common mental disorder.
             </AlertDescription>
           </Alert>

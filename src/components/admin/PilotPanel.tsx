@@ -59,7 +59,7 @@ export const PilotPanel = () => {
         pilot_end_date: endDate || null,
       });
       await refresh();
-      toast({ title: "Pilot settings saved" });
+      toast({ title: "Prototype settings saved" });
     } catch (e: any) {
       toast({ title: "Could not save", description: e.message, variant: "destructive" });
     } finally {
@@ -111,17 +111,17 @@ export const PilotPanel = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
-            Pilot mode
+            Synthetic-data mode
           </CardTitle>
           <CardDescription>
-            While pilot mode is on, every new record is marked as synthetic, appointment
-            reminders are held back and logged, and all exports carry the pilot watermark.
+            While synthetic-data mode is on, every new record is marked as synthetic, appointment
+            reminders are held back and logged, and all exports carry the research-prototype watermark.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
-              <Label htmlFor="pilot-mode" className="text-sm font-medium">Pilot mode active</Label>
+              <Label htmlFor="pilot-mode" className="text-sm font-medium">Synthetic-data mode active</Label>
               <p className="text-xs text-muted-foreground">Shows the banner: “{PILOT_BANNER_TEXT}”</p>
             </div>
             <Switch id="pilot-mode" checked={pilotMode} onCheckedChange={setPilotMode} />
@@ -131,7 +131,7 @@ export const PilotPanel = () => {
             <div>
               <Label htmlFor="allow-real" className="text-sm font-medium">Allow real client data</Label>
               <p className="text-xs text-muted-foreground">
-                Keep this off. The pilot environment is for synthetic data only.
+                Keep this off. This prototype is for synthetic data only.
               </p>
             </div>
             <Switch id="allow-real" checked={allowRealData} onCheckedChange={setAllowRealData} />
@@ -139,11 +139,11 @@ export const PilotPanel = () => {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="pilot-version">Pilot version</Label>
-              <Input id="pilot-version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="v1.0-pilot" />
+              <Label htmlFor="pilot-version">Prototype version</Label>
+              <Input id="pilot-version" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="v1.0-prototype" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pilot-end">Pilot end date</Label>
+              <Label htmlFor="pilot-end">Testing end date</Label>
               <Input id="pilot-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
