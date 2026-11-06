@@ -201,10 +201,10 @@ const Auth = () => {
         <Card className="w-full mt-3">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl font-bold text-center">
-              Mental Health Clinical Assistant
+              Nzwisiso research prototype
             </CardTitle>
             <CardDescription className="text-center">
-              Sign up/in to use this decision support tool.
+              Sign up/in to use this documentation-support prototype. It makes no diagnosis.
             </CardDescription>
           </CardHeader>
           <CardContent>

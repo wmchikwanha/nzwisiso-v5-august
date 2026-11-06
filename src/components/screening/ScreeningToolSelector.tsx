@@ -37,7 +37,7 @@ const SCREENING_TOOLS = [
     id: "SSQ14",
     name: "SSQ-14",
     description: "Shona Symptom Questionnaire",
-    detail: "14 questions • 3-4 minutes • locally validated",
+    detail: "14 questions • 3-4 minutes • published instrument",
     icon: Sprout,
     color: "text-emerald-600",
   },
@@ -107,7 +107,7 @@ export const ScreeningToolSelector = ({ onSelectTool, allowedTools }: ScreeningT
                   <p className="text-xs text-muted-foreground mt-2">{tool.detail}</p>
                   {locked && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Deactivated in this pilot. Use SSQ-14 instead.
+                      Deactivated in this prototype. Use SSQ-14 instead.
                     </p>
                   )}
                 </div>

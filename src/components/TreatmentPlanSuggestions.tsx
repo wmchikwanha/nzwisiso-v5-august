@@ -254,17 +254,17 @@ export const TreatmentPlanSuggestions = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            AI Treatment Planning
+            Draft care-plan notes (for clinician review)
           </CardTitle>
           <CardDescription>
-            Generate evidence-based treatment recommendations from WHO mhGAP and clinical guidelines
+            Generate draft notes referencing WHO mhGAP for the clinician to review. This is not a treatment recommendation.
           </CardDescription>
           <p className="text-xs text-muted-foreground mt-1">{AI_LAYER_LABEL}</p>
         </CardHeader>
         <CardContent>
           <Button onClick={generateTreatmentPlan} className="w-full">
             <Sparkles className="h-4 w-4 mr-2" />
-            Generate Treatment Plan
+            Generate draft notes
           </Button>
         </CardContent>
       </Card>
@@ -279,10 +279,10 @@ export const TreatmentPlanSuggestions = ({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary" />
-                Evidence-Based Treatment Recommendations
+                Draft care-plan notes for clinician review
               </CardTitle>
               <CardDescription>
-                AI-generated plan based on WHO mhGAP, NICE guidelines, and clinical best practices
+                AI-generated draft referencing WHO mhGAP and NICE. Not yet evaluated. The clinician decides.
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -306,7 +306,7 @@ export const TreatmentPlanSuggestions = ({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              <strong>Clinical Judgment Required:</strong> These are AI-generated suggestions. Always apply clinical judgment, consider patient preferences, and adapt to local context and resources.
+              <strong>Clinical Judgment Required:</strong> These are AI-generated drafts, not recommendations. Always apply clinical judgment, consider patient preferences, and adapt to local context and resources.
             </AlertDescription>
           </Alert>
 

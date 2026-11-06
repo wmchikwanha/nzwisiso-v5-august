@@ -204,8 +204,8 @@ export const scoreMMSE = (responses: number[]): ScoringResult => {
 
 const SSQ14_COPY: Record<RE.SSQ14Severity, [string, string]> = {
   none: ["Below Threshold", "Below the SSQ-14 threshold for common mental disorder. Watchful waiting and psychoeducation."],
-  mild: ["Mild Distress", "Mild distress below the validated cut-point (8). Psychoeducation, review in 2–4 weeks."],
-  moderate: ["Moderate Distress", "At or above the validated cut-point (≥8) for common mental disorder. Problem-solving therapy indicated; consider referral."],
+  mild: ["Mild Distress", "Mild distress below the published cut-point (8). Psychoeducation, review in 2–4 weeks."],
+  moderate: ["Moderate Distress", "At or above the published cut-point (≥8) for common mental disorder. Clinician to decide next steps, e.g. problem-solving or referral."],
   severe: ["Severe Distress", "High distress burden (≥11). Structured psychological intervention and clinician review indicated."],
 };
 

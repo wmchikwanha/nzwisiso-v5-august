@@ -217,7 +217,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="facilities"><Building2 className="h-4 w-4 mr-2" />Facilities</TabsTrigger>
             <TabsTrigger value="activity"><Activity className="h-4 w-4 mr-2" />Activity</TabsTrigger>
             <TabsTrigger value="audio"><Lock className="h-4 w-4 mr-2" />Audio</TabsTrigger>
-            <TabsTrigger value="pilot"><AlertTriangle className="h-4 w-4 mr-2" />Pilot</TabsTrigger>
+            <TabsTrigger value="pilot"><AlertTriangle className="h-4 w-4 mr-2" />Prototype settings</TabsTrigger>
             <TabsTrigger value="models"><Cpu className="h-4 w-4 mr-2" />AI models</TabsTrigger>
             <TabsTrigger value="incidents"><Flag className="h-4 w-4 mr-2" />Safety reports</TabsTrigger>
           </TabsList>

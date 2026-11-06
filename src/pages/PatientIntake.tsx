@@ -537,7 +537,7 @@ export default function PatientIntake() {
 
       {/* Footer */}
       <footer className="border-t mt-auto py-4 px-4 text-center text-xs text-muted-foreground">
-        <p>Nzwisiso Clinical Decision Support • AI-generated outputs require clinical review</p>
+        <p>Nzwisiso research prototype · documentation support only · makes no diagnosis · all drafts require clinician review</p>
       </footer>
     </div>
   );

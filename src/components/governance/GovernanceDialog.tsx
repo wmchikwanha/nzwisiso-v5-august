@@ -15,7 +15,7 @@ const SAFEGUARDS: { title: string; detail: string }[] = [
   { title: "Incident reporting", detail: "Any user can report an unsafe AI output; reports go to a reviewed safety queue with corrective-action notes." },
   { title: "Prompt-injection & input guard", detail: "Inputs are length-capped, screened for manipulation attempts and logged; invalid AI output falls back safely." },
   { title: "Encrypted audio retention", detail: "Recordings are stored privately; playback is limited to the Principal Investigator and Safety Monitor and is itself audited." },
-  { title: "Pilot mode", detail: "During the pilot all records are marked synthetic and exports are watermarked." },
+  { title: "Synthetic-data mode", detail: "All records are marked synthetic and exports are watermarked. This prototype has not been deployed or piloted." },
 ];
 
 export const GovernanceDialog = () => (

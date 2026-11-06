@@ -238,7 +238,7 @@ export function buildBundle(
       { title: "Narrative", text: { status: "additional", div: `<div xmlns="http://www.w3.org/1999/xhtml">${s.narrative}</div>` } },
       { title: "Mental Status Examination", entry: [{ reference: `Observation/${obsMSE.id}` }] },
       { title: "Screening", entry: [{ reference: `Observation/${obsPHQ9.id}` }, { reference: `Observation/${obsGAD7.id}` }] },
-      { title: "Diagnostic Suggestion (AI — pending clinician approval)", entry: [{ reference: `DiagnosticReport/${diagnostic.id}` }] },
+      { title: "Draft considerations (AI) — for clinician review; not a diagnosis", entry: [{ reference: `DiagnosticReport/${diagnostic.id}` }] },
       { title: "Risk Assessment", entry: [{ reference: `RiskAssessment/${risk.id}` }] },
     ],
   };
